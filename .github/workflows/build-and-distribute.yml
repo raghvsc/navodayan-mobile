@@ -75,7 +75,11 @@ jobs:
           retention-days: 30
 
       - name: Distribute APK to Firebase App Distribution
-        if: github.event_name != 'pull_request' && (secrets.FIREBASE_SERVICE_ACCOUNT_KEY != '' || secrets.FIREBASE_TOKEN != '')
+        if: github.event_name != 'pull_request' && (env.FIREBASE_SERVICE_ACCOUNT_KEY != '' || env.FIREBASE_TOKEN != '')
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_APP_ID || '1:302719874856:android:f09cbf8514adec44c7c21d' }}

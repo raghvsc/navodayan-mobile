@@ -1,52 +1,50 @@
-# Navodayan Mobile (Expo)
+# Navodayan Mobile (Flutter)
 
-Android/iOS client for the Navodayan community portal.
+Flutter mobile application for the Navodayan community portal (Android & iOS).
 
-Repo: https://github.com/raghvsc/navodayan-mobile
+## Package / Bundle IDs
+- **Android Application ID**: `org.navodayan.app`
+- **iOS Bundle ID**: `org.navodayan.app`
 
-Uses the backend API from https://github.com/raghvsc/navodayan (`backend/`).
+## Features
+- **Authentication**: Login, Registration, Password Reset, Profile Management with persistent token storage.
+- **Directory**: School and batch directory lookup with real-time search, filtering, and mentor badges.
+- **Mentorship Hub**: Connect mentors and mentees with personalized request handling.
+- **Firebase Integration**: Real-time Firebase Chat, Analytics, and Crashlytics.
+- **Events & Community**: Community lounge and upcoming alumni events.
+- **Modern UI**: Polished Material 3 design with full Dark Mode support and responsive navigation.
 
-## Package / bundle IDs
-- Android: `org.navodayan.app`
-- iOS: `org.navodayan.app`
+## Development
 
-## Setup
-
-### 1. Backend (required for local API)
+### 1. Install Dependencies
 ```bash
-git clone git@github.com:raghvsc/navodayan.git
-cd navodayan/backend
-npm install
-# configure .env (see backend docs / .env.example)
-npm run dev
+flutter pub get
 ```
 
-### 2. Mobile app
+### 2. Run the Application
 ```bash
-git clone git@github.com:raghvsc/navodayan-mobile.git
-cd navodayan-mobile
-npm install
-cp .env.example .env
+# Run on default connected device / emulator
+flutter run
+
+# Run with custom API URL
+flutter run --dart-define=API_BASE_URL=https://api.navodayan.org/api
 ```
 
-Update `.env` for your device:
-- Android emulator: `http://10.0.2.2:5000/api`
-- iOS simulator: `http://127.0.0.1:5000/api`
-- Physical phone: `http://<your-computer-lan-ip>:5000/api`
-- Deployed API: `https://2v7xgmkczk.us-east-1.awsapprunner.com/api`
-
+### 3. Run Tests
 ```bash
-npm start
+flutter test
 ```
 
-Scan the QR code with Expo Go, or press `a` for Android emulator.
+## CI/CD Pipeline (GitHub Actions)
 
-## Current screens
-- Home
-- Login
-- Register (lightweight join)
-- Directory (list + search when logged in)
+The repository includes an automated workflow in `.github/workflows/build-and-distribute.yml` that:
+1. Validates code through automated testing (`flutter test`).
+2. Builds release APK (`build/app/outputs/flutter-apk/app-release.apk`).
+3. Builds release App Bundle (`build/app/outputs/bundle/release/app-release.aab`).
+4. Uploads both APK and AAB as downloadable GitHub Actions artifacts.
+5. Distributes release APK to testers via **Firebase App Distribution**.
 
-## Notes
-- Play Store listing package name must stay `org.navodayan.app`.
-- API changes belong in `navodayan` (backend) first; then update this app.
+### Firebase Distribution Configuration
+To enable Firebase App Distribution in GitHub Actions, add these repository secrets in GitHub (*Settings > Secrets and variables > Actions*):
+- `FIREBASE_SERVICE_ACCOUNT_KEY`: Service account JSON key with Firebase App Distribution Admin role.
+- `FIREBASE_APP_ID` (Optional): `1:302719874856:android:f09cbf8514adec44c7c21d` (defaults automatically from config).

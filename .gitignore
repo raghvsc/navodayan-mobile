@@ -1,43 +1,61 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
-node_modules/
-
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
-
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
 .DS_Store
-*.pem
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
 
-# local env files
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Platform Ephemerals
+**/Flutter/ephemeral/
+**/flutter/ephemeral/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/macos/Flutter/ephemeral/
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+
+# Android
+**/android/local.properties
+**/android/.gradle
+**/android/.kotlin
+/android/app/debug
+/android/app/profile
+/android/app/release
+*.keystore
+*.jks
+
+# Secrets & Environment
 .env
-.env*.local
-!.env.example
+.env.local
+.env.production
 
-# typescript
-*.tsbuildinfo
+# Symbolication related
+app.*.symbols
 
-# generated native folders
-/ios
-/android
+# Obfuscation related
+app.*.map.json
+
+# Widget Preview related
+.widget_preview/

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "302719874856",
+    "project_id": "navodayan-org",
+    "storage_bucket": "navodayan-org.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:302719874856:android:f09cbf8514adec44c7c21d",
+        "android_client_info": {
+          "package_name": "org.navodayan.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBeTGvembOywhhXFWdD9qMD8LLtzOilZwI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

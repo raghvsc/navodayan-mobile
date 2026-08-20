@@ -1,0 +1,86 @@
+name: Build, Release & Distribute
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - flutter
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: 'Release Notes for Firebase Distribution'
+        required: false
+        default: 'Manual trigger build from GitHub Actions'
+      distribution_groups:
+        description: 'Firebase App Distribution Tester Group(s)'
+        required: false
+        default: 'testers'
+
+jobs:
+  build-and-distribute:
+    name: Build APK & AAB + Firebase Distribution
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java Development Kit (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Print Flutter & Dart Environment
+        run: flutter --version
+
+      - name: Install Flutter Dependencies
+        run: flutter pub get
+
+      - name: Run Flutter Tests
+        run: flutter test
+
+      - name: Build Release APK
+        run: flutter build apk --release
+
+      - name: Build Release App Bundle (AAB)
+        run: flutter build appbundle --release
+
+      - name: Upload Release APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: navodayan-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Release AAB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: navodayan-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Distribute APK to Firebase App Distribution
+        if: github.event_name != 'pull_request' && (secrets.FIREBASE_SERVICE_ACCOUNT_KEY != '' || secrets.FIREBASE_TOKEN != '')
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID || '1:302719874856:android:f09cbf8514adec44c7c21d' }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+          token: ${{ secrets.FIREBASE_TOKEN }}
+          file: build/app/outputs/flutter-apk/app-release.apk
+          groups: ${{ github.event.inputs.distribution_groups || vars.FIREBASE_DISTRIBUTION_GROUPS || 'testers' }}
+          releaseNotes: ${{ github.event.inputs.release_notes || github.event.head_commit.message || 'Automated build from GitHub Actions' }}

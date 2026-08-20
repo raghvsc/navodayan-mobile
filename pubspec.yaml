@@ -1,0 +1,43 @@
+name: navodayan
+description: "Flutter client for the Navodayan community portal."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^1.2.2
+  provider: ^6.1.2
+  shared_preferences: ^2.3.2
+  intl: ^0.20.3
+  url_launcher: ^6.3.2
+  webview_flutter: ^4.14.1
+  flutter_local_notifications: ^22.3.0
+  firebase_core: ^4.13.0
+  firebase_crashlytics: ^5.2.7
+  firebase_analytics: ^12.4.6
+  cloud_firestore: ^6.8.0
+  webview_flutter_android: ^4.14.0
+  permission_handler: ^13.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/navodayan_logo.png
+    - assets/icon.png
+    - assets/splash-icon.png
+    - assets/android-icon-foreground.png
+    - assets/android-icon-background.png
+    - assets/android-icon-monochrome.png
+    - assets/favicon.png

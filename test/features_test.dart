@@ -7,6 +7,7 @@ import 'package:navodayan/providers/auth_provider.dart';
 import 'package:navodayan/providers/chat_provider.dart';
 import 'package:navodayan/providers/notification_provider.dart';
 import 'package:navodayan/screens/chats_screen.dart';
+import 'package:navodayan/screens/chat_detail_screen.dart';
 import 'package:navodayan/screens/home_screen.dart';
 import 'package:navodayan/screens/notifications_screen.dart';
 import 'package:navodayan/screens/profile_screen.dart';
@@ -158,6 +159,59 @@ void main() {
       // Verify outdated menu items are NOT in the popup menu
       expect(find.text('About Community'), findsNothing);
       expect(find.text('Contact & Feedback'), findsNothing);
+    });
+  });
+
+  group('ChatDetailScreen 1-on-1 Video Call Tests', () {
+    testWidgets('Renders 1-on-1 video call button and call invite bubble', (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({
+        AuthProvider.tokenKey: 'test-token',
+        AuthProvider.userKey: jsonEncode({
+          'id': 'u1',
+          'email': 'sender@example.com',
+          'profile': {'fullName': 'Sender User'},
+        }),
+      });
+
+      final authProvider = AuthProvider();
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+            ChangeNotifierProvider(create: (_) => NotificationProvider()),
+            ChangeNotifierProxyProvider2<AuthProvider, NotificationProvider, ChatProvider>(
+              create: (_) => ChatProvider(),
+              update: (_, auth, notif, chat) {
+                final provider = chat ?? ChatProvider();
+                provider.updateAuthProvider(auth);
+                provider.updateNotificationProvider(notif);
+                return provider;
+              },
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const ChatDetailScreen(
+              conversationId: 'c1',
+              participantId: 'u2',
+              participantName: 'Alok Singh',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify Video Call icon is present in AppBar
+      expect(find.byIcon(Icons.videocam_rounded), findsOneWidget);
+
+      // Tap the video call icon to open confirmation bottom sheet
+      await tester.tap(find.byIcon(Icons.videocam_rounded));
+      await tester.pumpAndSettle();
+
+      // Verify bottom sheet title and confirmation button
+      expect(find.text('1-on-1 Video Call'), findsOneWidget);
+      expect(find.text('with Alok Singh'), findsOneWidget);
+      expect(find.text('Start Call'), findsOneWidget);
     });
   });
 }

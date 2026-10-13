@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../widgets/community_lounge_button.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -14,10 +13,6 @@ class AboutScreen extends StatelessWidget {
       backgroundColor: colors.background,
       appBar: AppBar(
         title: const Text('About Us'),
-        actions: const [
-          CommunityLoungeButton(),
-          SizedBox(width: 8),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),

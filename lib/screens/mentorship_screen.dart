@@ -7,7 +7,6 @@ import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import '../services/mentorship_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/community_lounge_button.dart';
 import 'profile_screen.dart';
 
 class MentorshipScreen extends StatefulWidget {
@@ -168,7 +167,6 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
       appBar: AppBar(
         title: const Text('Mentorship Hub'),
         actions: [
-          const CommunityLoungeButton(),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () {

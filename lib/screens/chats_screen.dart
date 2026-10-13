@@ -5,7 +5,6 @@ import '../models/chat_models.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../theme/app_theme.dart';
-import '../widgets/community_lounge_button.dart';
 import 'chat_detail_screen.dart';
 
 class ChatsScreen extends StatefulWidget {
@@ -99,10 +98,6 @@ class _ChatsScreenState extends State<ChatsScreen> with SingleTickerProviderStat
       backgroundColor: colors.background,
       appBar: AppBar(
         title: const Text('Member Chats'),
-        actions: const [
-          CommunityLoungeButton(),
-          SizedBox(width: 8),
-        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: colors.primary,

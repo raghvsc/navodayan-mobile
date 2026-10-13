@@ -10,8 +10,13 @@ import '../providers/auth_provider.dart';
 
 class MeetingScreen extends StatefulWidget {
   final String? customRoomName;
+  final String? peerName;
 
-  const MeetingScreen({super.key, this.customRoomName});
+  const MeetingScreen({
+    super.key,
+    this.customRoomName,
+    this.peerName,
+  });
 
   @override
   State<MeetingScreen> createState() => _MeetingScreenState();
@@ -27,9 +32,6 @@ class _MeetingScreenState extends State<MeetingScreen>
   bool _micGranted = false;
   bool _needsSettings = false;
   bool _requestInProgress = false;
-
-  // Global persistent room name for alumni lounge
-  static const String _defaultRoom = 'navodayan-alumni-community-lounge-live';
 
   @override
   void initState() {
@@ -233,7 +235,8 @@ class _MeetingScreenState extends State<MeetingScreen>
   void _initWebView() {
     if (_controller != null) return;
 
-    final roomName = widget.customRoomName ?? _defaultRoom;
+    final roomName = widget.customRoomName;
+    if (roomName == null || roomName.isEmpty) return;
     final auth = context.read<AuthProvider>();
     final userName = auth.user?.profile?.fullName ??
         auth.user?.email.split('@').first ??
@@ -411,6 +414,51 @@ class _MeetingScreenState extends State<MeetingScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.customRoomName == null || widget.customRoomName!.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0B1120),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0F172A),
+          foregroundColor: Colors.white,
+          title: const Text('1-on-1 Video Call'),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.videocam_off_rounded, size: 48, color: Color(0xFF94A3B8)),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'No Public Call Room',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Calls are strictly 1-on-1. A video call must be initiated and accepted between two members in Member Chat.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, height: 1.5),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Return to Chat'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0B1120),
       appBar: AppBar(
@@ -433,12 +481,12 @@ class _MeetingScreenState extends State<MeetingScreen>
               ),
             ),
             const SizedBox(width: 8),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Community Lounge',
+                const Text(
+                  '1-on-1 Video Call',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -446,8 +494,10 @@ class _MeetingScreenState extends State<MeetingScreen>
                   ),
                 ),
                 Text(
-                  'Live Audio & Video Space',
-                  style: TextStyle(
+                  widget.peerName != null
+                      ? 'Private session with ${widget.peerName}'
+                      : 'Private direct session',
+                  style: const TextStyle(
                     fontSize: 11,
                     color: Color(0xFF94A3B8),
                   ),

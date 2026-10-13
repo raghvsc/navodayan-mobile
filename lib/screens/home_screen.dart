@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
-import '../widgets/community_lounge_button.dart';
-import 'meeting_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final ValueChanged<int>? onNavigateTab;
@@ -64,8 +62,6 @@ class HomeScreen extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CommunityLoungeButton(),
-                      const SizedBox(width: 8),
                       if (auth.isAuthenticated)
                         PopupMenuButton<String>(
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -352,34 +348,31 @@ class HomeScreen extends StatelessWidget {
                   Expanded(
                     child: _buildFeatureCard(
                       context,
-                      icon: Icons.videocam_rounded,
-                      title: 'Community Lounge',
-                      desc: 'Live alumni audio & video space',
-                      color: const Color(0xFF8B5CF6),
-                      onTap: () {
-                        if (!auth.isAuthenticated) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please log in to join Community Lounge')),
-                          );
-                          Navigator.pushNamed(context, '/login');
-                          return;
-                        }
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const MeetingScreen()),
-                        );
-                      },
+                      icon: Icons.event_available_rounded,
+                      title: 'Events & Meets',
+                      desc: 'Join meetups and reunions',
+                      color: colors.accent,
+                      onTap: () => onNavigateTab != null ? onNavigateTab!(3) : Navigator.pushNamed(context, '/events'),
                     ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: _buildFeatureCard(
                       context,
-                      icon: Icons.event_available_rounded,
-                      title: 'Events & Meets',
-                      desc: 'Join meetups and reunions',
-                      color: colors.accent,
-                      onTap: () => onNavigateTab != null ? onNavigateTab!(3) : Navigator.pushNamed(context, '/events'),
+                      icon: Icons.connect_without_contact_rounded,
+                      title: 'My Connections',
+                      desc: 'Alumni network & requests',
+                      color: const Color(0xFF8B5CF6),
+                      onTap: () {
+                        if (!auth.isAuthenticated) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please log in to view connections')),
+                          );
+                          Navigator.pushNamed(context, '/login');
+                          return;
+                        }
+                        Navigator.pushNamed(context, '/connections');
+                      },
                     ),
                   ),
                 ],

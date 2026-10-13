@@ -5,7 +5,6 @@ import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import '../services/events_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/community_lounge_button.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -149,7 +148,6 @@ class _EventsScreenState extends State<EventsScreen> {
       appBar: AppBar(
         title: const Text('Navodayan Events'),
         actions: [
-          const CommunityLoungeButton(),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: _fetchEvents,

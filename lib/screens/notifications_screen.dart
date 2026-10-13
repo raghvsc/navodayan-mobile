@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../models/notification_item.dart';
 import '../providers/notification_provider.dart';
 import '../theme/app_theme.dart';
-import '../widgets/community_lounge_button.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -57,7 +56,6 @@ class NotificationsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
-          const CommunityLoungeButton(),
           if (notifications.isNotEmpty)
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert_rounded),

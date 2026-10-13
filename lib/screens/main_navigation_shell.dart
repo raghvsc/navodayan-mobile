@@ -11,12 +11,10 @@ import 'coordinator_dashboard_screen.dart';
 import 'directory_screen.dart';
 import 'events_screen.dart';
 import 'home_screen.dart';
-import 'meeting_screen.dart';
 import 'mentorship_screen.dart';
 import 'notifications_screen.dart';
 import 'offerings_screen.dart';
 import 'profile_screen.dart';
-import '../widgets/community_lounge_button.dart';
 
 class MainNavigationShell extends StatefulWidget {
   const MainNavigationShell({super.key});
@@ -32,15 +30,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     setState(() {
       _currentIndex = index;
     });
-  }
-
-  void _openMeeting() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const MeetingScreen(),
-      ),
-    );
   }
 
   @override
@@ -111,7 +100,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       appBar: AppBar(
         title: const Text('More Options'),
         actions: [
-          const CommunityLoungeButton(),
           IconButton(
             icon: Stack(
               children: [
@@ -373,13 +361,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     MaterialPageRoute(builder: (_) => const ConnectionsScreen()),
                   );
                 },
-              ),
-              const SizedBox(height: 10),
-              _buildMenuTile(
-                icon: Icons.videocam_outlined,
-                title: 'Community Lounge (Video/Audio)',
-                subtitle: 'Join live open discussion lounge',
-                onTap: _openMeeting,
               ),
               const SizedBox(height: 10),
             ],

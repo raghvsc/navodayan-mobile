@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -20,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   bool _resendingVerification = false;
   String? _errorMessage;
+  String? _technicalError;
   String? _infoMessage;
 
   @override
@@ -29,12 +31,38 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  String _getUserFriendlyMessage(String rawError) {
+    final lower = rawError.toLowerCase();
+    if (lower.contains('verify your email') || lower.contains('not verified')) {
+      return 'Please verify your email address before logging in.';
+    }
+    if (lower.contains('invalid credential') ||
+        lower.contains('incorrect password') ||
+        lower.contains('user not found') ||
+        lower.contains('wrong password') ||
+        lower.contains('invalid email or password')) {
+      return 'Incorrect email/username or password. Please try again.';
+    }
+    if (lower.contains('network') ||
+        lower.contains('unable to reach') ||
+        lower.contains('connection') ||
+        lower.contains('socketexception') ||
+        lower.contains('timeout')) {
+      return 'Unable to connect to the server. Please check your internet connection.';
+    }
+    if (lower.contains('too many requests') || lower.contains('rate limit')) {
+      return 'Too many login attempts. Please wait a few moments and try again.';
+    }
+    return 'Unable to sign in at this time. Please try again later.';
+  }
+
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _loading = true;
       _errorMessage = null;
+      _technicalError = null;
       _infoMessage = null;
     });
 
@@ -48,10 +76,14 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         Navigator.pop(context);
       }
-    } catch (e) {
-      final msg = e.toString().replaceAll('Exception: ', '');
+    } catch (e, stackTrace) {
+      final rawError = e.toString().replaceAll('Exception: ', '').trim();
+      debugPrint('[Login Error] Technical details: $rawError');
+      debugPrint('[Login StackTrace] $stackTrace');
+
       setState(() {
-        _errorMessage = msg;
+        _errorMessage = _getUserFriendlyMessage(rawError);
+        _technicalError = rawError;
       });
     } finally {
       if (mounted) {
@@ -65,6 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (email.isEmpty) {
       setState(() {
         _errorMessage = 'Please enter your email first, then click resend verification.';
+        _technicalError = null;
       });
       return;
     }
@@ -80,9 +113,14 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _infoMessage = msg;
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
+      final rawError = e.toString().replaceAll('Exception: ', '').trim();
+      debugPrint('[Resend Verification Error] Technical details: $rawError');
+      debugPrint('[Resend Verification StackTrace] $stackTrace');
+
       setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _errorMessage = 'Unable to send verification email. Please try again later.';
+        _technicalError = rawError;
       });
     } finally {
       if (mounted) {
@@ -95,8 +133,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final showResend = _errorMessage != null &&
-        _errorMessage!.toLowerCase().contains('verify your email');
+    final showResend = (_errorMessage != null &&
+            _errorMessage!.toLowerCase().contains('verify your email')) ||
+        (_technicalError != null &&
+            _technicalError!.toLowerCase().contains('verify your email'));
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -157,12 +197,56 @@ class _LoginScreenState extends State<LoginScreen> {
                         border: Border.all(color: colors.error.withValues(alpha: 0.3)),
                       ),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
                             _errorMessage!,
-                            style: TextStyle(color: colors.error, fontSize: 13),
+                            style: TextStyle(
+                              color: colors.error,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
                             textAlign: TextAlign.center,
                           ),
+                          if (kDebugMode && _technicalError != null) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: colors.surface,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: colors.error.withValues(alpha: 0.25)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.bug_report_outlined, size: 14, color: colors.error),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Debug Technical Error:',
+                                        style: TextStyle(
+                                          color: colors.error,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  SelectableText(
+                                    _technicalError!,
+                                    style: TextStyle(
+                                      fontFamily: 'monospace',
+                                      fontSize: 11,
+                                      color: colors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           if (showResend) ...[
                             const SizedBox(height: 8),
                             TextButton(

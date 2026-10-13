@@ -275,6 +275,7 @@ class _CoordinatorContributionsViewState extends State<CoordinatorContributionsV
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: selectedUserId,
                     decoration: const InputDecoration(labelText: 'Member *'),
                     items: _members.map((m) {
@@ -282,7 +283,11 @@ class _CoordinatorContributionsViewState extends State<CoordinatorContributionsV
                       final batch = m['batch'] != null ? ' · Batch ${m['batch']}' : '';
                       return DropdownMenuItem<String>(
                         value: m['userId'].toString(),
-                        child: Text('$name$batch', overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          '$name$batch',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       );
                     }).toList(),
                     onChanged: (val) => setModalState(() => selectedUserId = val),
@@ -297,6 +302,7 @@ class _CoordinatorContributionsViewState extends State<CoordinatorContributionsV
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: selectedType,
                     decoration: const InputDecoration(labelText: 'Type *'),
                     items: volunteerTypes.entries
@@ -315,13 +321,14 @@ class _CoordinatorContributionsViewState extends State<CoordinatorContributionsV
                   const SizedBox(height: 12),
                   if (campaigns.isNotEmpty) ...[
                     DropdownButtonFormField<String>(
+                      isExpanded: true,
                       value: selectedCampaignId,
                       decoration: const InputDecoration(labelText: 'Related Campaign (Optional)'),
                       items: [
                         const DropdownMenuItem<String>(value: null, child: Text('None')),
                         ...campaigns.map((c) => DropdownMenuItem<String>(
                               value: c['id'].toString(),
-                              child: Text(c['title'] ?? 'Campaign', overflow: TextOverflow.ellipsis),
+                              child: Text(c['title'] ?? 'Campaign', overflow: TextOverflow.ellipsis, maxLines: 1),
                             )),
                       ],
                       onChanged: (val) => setModalState(() => selectedCampaignId = val),
@@ -484,6 +491,7 @@ class _CoordinatorContributionsViewState extends State<CoordinatorContributionsV
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: selectedUserId,
                     decoration: const InputDecoration(labelText: 'Member *'),
                     items: _members.map((m) {
@@ -491,19 +499,24 @@ class _CoordinatorContributionsViewState extends State<CoordinatorContributionsV
                       final batch = m['batch'] != null ? ' · Batch ${m['batch']}' : '';
                       return DropdownMenuItem<String>(
                         value: m['userId'].toString(),
-                        child: Text('$name$batch', overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          '$name$batch',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       );
                     }).toList(),
                     onChanged: (val) => setModalState(() => selectedUserId = val),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: selectedCampaignId,
                     decoration: const InputDecoration(labelText: 'Campaign *'),
                     items: campaigns.map((c) {
                       return DropdownMenuItem<String>(
                         value: c['id'].toString(),
-                        child: Text(c['title'] ?? 'Campaign', overflow: TextOverflow.ellipsis),
+                        child: Text(c['title'] ?? 'Campaign', overflow: TextOverflow.ellipsis, maxLines: 1),
                       );
                     }).toList(),
                     onChanged: (val) => setModalState(() => selectedCampaignId = val),
@@ -520,6 +533,7 @@ class _CoordinatorContributionsViewState extends State<CoordinatorContributionsV
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: selectedMode,
                     decoration: const InputDecoration(labelText: 'Payment Mode *'),
                     items: paymentModes.entries
@@ -665,6 +679,7 @@ class _CoordinatorContributionsViewState extends State<CoordinatorContributionsV
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: selectedPurpose,
                     decoration: const InputDecoration(labelText: 'For / Purpose *'),
                     items: campaignPurposes.entries
@@ -839,6 +854,7 @@ class _CoordinatorContributionsViewState extends State<CoordinatorContributionsV
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: selectedMode,
                     decoration: const InputDecoration(labelText: 'Payment Mode *'),
                     items: paymentModes.entries

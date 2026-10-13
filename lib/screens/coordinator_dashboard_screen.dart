@@ -850,15 +850,23 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           color: colors.surface,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Coordinator Events', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
-                  Text('Manage events for your JNV scope', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Coordinator Events', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Manage events for your JNV scope',
+                      style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               ElevatedButton.icon(
                 onPressed: _showCreateEventDialog,
                 icon: const Icon(Icons.add_rounded, size: 18),
@@ -866,7 +874,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
@@ -1098,15 +1106,23 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           color: colors.surface,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Coordinator Feedback', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
-                  Text('Share feedback and feature requests with admins', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Coordinator Feedback', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Share feedback and feature requests with admins',
+                      style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               ElevatedButton.icon(
                 onPressed: _showSubmitFeedbackDialog,
                 icon: const Icon(Icons.add_rounded, size: 18),
@@ -1114,7 +1130,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),

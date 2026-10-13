@@ -1,11 +1,20 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 
 class ApiClient {
   final String baseUrl;
   final http.Client _client;
+
+  static String? _authToken;
+
+  static void setAuthToken(String? token) {
+    _authToken = token;
+  }
+
+  static String? get authToken => _authToken;
 
   ApiClient({String? baseUrl, http.Client? client})
       : baseUrl = baseUrl ?? ApiConfig.baseUrl,
@@ -62,8 +71,20 @@ class ApiClient {
       requestHeaders.addAll(headers);
     }
 
-    if (token != null && token.isNotEmpty) {
-      requestHeaders['Authorization'] = 'Bearer $token';
+    String? effectiveToken = token ?? _authToken;
+    if (effectiveToken == null || effectiveToken.isEmpty) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final stored = prefs.getString('navodayan_token');
+        if (stored != null && stored.isNotEmpty) {
+          effectiveToken = stored;
+          _authToken = stored;
+        }
+      } catch (_) {}
+    }
+
+    if (effectiveToken != null && effectiveToken.isNotEmpty) {
+      requestHeaders['Authorization'] = 'Bearer $effectiveToken';
     }
 
     http.Response response;

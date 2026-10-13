@@ -13,7 +13,7 @@ class ContributionsService {
       return ContributionsData.fromJson(response);
     } catch (e) {
       debugPrint('ContributionsService.getContributions error: $e');
-      rethrow;
+      return const ContributionsData();
     }
   }
 

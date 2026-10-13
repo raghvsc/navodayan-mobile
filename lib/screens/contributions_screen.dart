@@ -56,7 +56,8 @@ class _ContributionsScreenState extends State<ContributionsScreen> with SingleTi
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Unable to load contributions at this time.';
+          _data ??= const ContributionsData();
+          _campaigns = [];
           _isLoading = false;
         });
       }
@@ -402,20 +403,7 @@ class _ContributionsScreenState extends State<ContributionsScreen> with SingleTi
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline_rounded, size: 48, color: colors.error),
-                      const SizedBox(height: 12),
-                      Text(_errorMessage!, style: TextStyle(color: colors.textSecondary)),
-                      const SizedBox(height: 16),
-                      ElevatedButton(onPressed: _loadData, child: const Text('Try Again')),
-                    ],
-                  ),
-                )
-              : TabBarView(
+          : TabBarView(
                   controller: _tabController,
                   children: [
                     _buildOverviewTab(colors, auth),

@@ -32,6 +32,7 @@ class AuthProvider extends ChangeNotifier {
 
       if (storedToken != null && storedToken.isNotEmpty) {
         _token = storedToken;
+        ApiClient.setAuthToken(storedToken);
       }
       if (storedUser != null && storedUser.isNotEmpty) {
         try {
@@ -99,6 +100,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> _persist(String nextToken, AuthUser nextUser) async {
     _token = nextToken;
     _user = nextUser;
+    ApiClient.setAuthToken(nextToken);
     _syncFirebaseUser(nextUser);
     notifyListeners();
 
@@ -164,6 +166,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     _token = null;
     _user = null;
+    ApiClient.setAuthToken(null);
     _syncFirebaseUser(null);
     notifyListeners();
 

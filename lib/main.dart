@@ -8,7 +8,10 @@ import 'providers/chat_provider.dart';
 import 'providers/notification_provider.dart';
 import 'screens/about_screen.dart';
 import 'screens/chats_screen.dart';
+import 'screens/connections_screen.dart';
 import 'screens/contact_screen.dart';
+import 'screens/contributions_screen.dart';
+import 'screens/coordinator_dashboard_screen.dart';
 import 'screens/directory_screen.dart';
 import 'screens/events_screen.dart';
 import 'screens/forgot_password_screen.dart';
@@ -17,6 +20,7 @@ import 'screens/main_navigation_shell.dart';
 import 'screens/meeting_screen.dart';
 import 'screens/mentorship_screen.dart';
 import 'screens/notifications_screen.dart';
+import 'screens/offerings_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/splash_screen.dart';
@@ -91,6 +95,10 @@ class NavodayanApp extends StatelessWidget {
           '/chats': (context) => const ChatsScreen(),
           '/notifications': (context) => const NotificationsScreen(),
           '/meeting': (context) => const MeetingScreen(),
+          '/contributions': (context) => const ContributionsScreen(),
+          '/offerings': (context) => const OfferingsScreen(),
+          '/connections': (context) => const ConnectionsScreen(),
+          '/coordinator': (context) => const CoordinatorDashboardScreen(),
         },
       ),
     );

@@ -116,6 +116,37 @@ class HomeScreen extends StatelessWidget {
                                 ),
                               ),
                               PopupMenuItem(
+                                value: 'connections',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.people_outline_rounded, size: 18, color: colors.textSecondary),
+                                    const SizedBox(width: 8),
+                                    Text('My Connections', style: TextStyle(color: colors.textPrimary)),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'contributions',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.volunteer_activism_outlined, size: 18, color: colors.textSecondary),
+                                    const SizedBox(width: 8),
+                                    Text('Contributions', style: TextStyle(color: colors.textPrimary)),
+                                  ],
+                                ),
+                              ),
+                              if (auth.user?.isCoordinator == true || auth.user?.isAdmin == true)
+                                PopupMenuItem(
+                                  value: 'coordinator',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.admin_panel_settings_outlined, size: 18, color: colors.primary),
+                                      const SizedBox(width: 8),
+                                      Text('Coordinator Portal', style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              PopupMenuItem(
                                 value: 'chat_requests',
                                 child: Row(
                                   children: [
@@ -143,6 +174,12 @@ class HomeScreen extends StatelessWidget {
                               auth.logout();
                             } else if (val == 'profile') {
                               Navigator.pushNamed(context, '/profile');
+                            } else if (val == 'connections') {
+                              Navigator.pushNamed(context, '/connections');
+                            } else if (val == 'contributions') {
+                              Navigator.pushNamed(context, '/contributions');
+                            } else if (val == 'coordinator') {
+                              Navigator.pushNamed(context, '/coordinator');
                             } else if (val == 'chat_requests') {
                               Navigator.pushNamed(context, '/chats', arguments: 1);
                             }
@@ -347,6 +384,52 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildFeatureCard(
+                      context,
+                      icon: Icons.storefront_rounded,
+                      title: 'Offerings & Market',
+                      desc: 'Alumni businesses & opportunities',
+                      color: const Color(0xFF0284C7),
+                      onTap: () => Navigator.pushNamed(context, '/offerings'),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _buildFeatureCard(
+                      context,
+                      icon: Icons.volunteer_activism_rounded,
+                      title: 'School Contributions',
+                      desc: 'Funds, hours & school campaigns',
+                      color: const Color(0xFF059669),
+                      onTap: () {
+                        if (!auth.isAuthenticated) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please log in to view contributions')),
+                          );
+                          Navigator.pushNamed(context, '/login');
+                          return;
+                        }
+                        Navigator.pushNamed(context, '/contributions');
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              if (auth.isAuthenticated && (auth.user?.isCoordinator == true || auth.user?.isAdmin == true)) ...[
+                const SizedBox(height: 14),
+                _buildFeatureCard(
+                  context,
+                  icon: Icons.admin_panel_settings_rounded,
+                  title: 'Coordinator Dashboard',
+                  desc: 'Manage school alumni, approvals & reviews',
+                  color: const Color(0xFF7C3AED),
+                  onTap: () => Navigator.pushNamed(context, '/coordinator'),
+                ),
+              ],
               const SizedBox(height: 14),
               Row(
                 children: [

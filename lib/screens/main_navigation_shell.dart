@@ -5,12 +5,16 @@ import '../providers/chat_provider.dart';
 import '../providers/notification_provider.dart';
 import '../theme/app_theme.dart';
 import 'chats_screen.dart';
+import 'connections_screen.dart';
+import 'contributions_screen.dart';
+import 'coordinator_dashboard_screen.dart';
 import 'directory_screen.dart';
 import 'events_screen.dart';
 import 'home_screen.dart';
 import 'meeting_screen.dart';
 import 'mentorship_screen.dart';
 import 'notifications_screen.dart';
+import 'offerings_screen.dart';
 import 'profile_screen.dart';
 import '../widgets/community_lounge_button.dart';
 
@@ -360,6 +364,18 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             const SizedBox(height: 10),
             if (auth.isAuthenticated) ...[
               _buildMenuTile(
+                icon: Icons.people_outline_rounded,
+                title: 'My Connections',
+                subtitle: 'Manage alumni connection requests & network',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ConnectionsScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+              _buildMenuTile(
                 icon: Icons.videocam_outlined,
                 title: 'Community Lounge (Video/Audio)',
                 subtitle: 'Join live open discussion lounge',
@@ -379,6 +395,67 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 );
               },
             ),
+            const SizedBox(height: 20),
+
+            Text(
+              'OPPORTUNITIES & CONTRIBUTIONS',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1,
+                color: colors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            _buildMenuTile(
+              icon: Icons.storefront_outlined,
+              title: 'Offerings & Marketplace',
+              subtitle: 'Alumni businesses, hiring, services & initiatives',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const OfferingsScreen()),
+                );
+              },
+            ),
+            if (auth.isAuthenticated) ...[
+              const SizedBox(height: 10),
+              _buildMenuTile(
+                icon: Icons.volunteer_activism_outlined,
+                title: 'School Contributions & Support',
+                subtitle: 'Track school funds, volunteer hours & campaigns',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ContributionsScreen()),
+                  );
+                },
+              ),
+            ],
+            if (auth.isAuthenticated && (auth.user?.isCoordinator == true || auth.user?.isAdmin == true)) ...[
+              const SizedBox(height: 20),
+              Text(
+                'COORDINATOR PORTAL',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                  color: colors.primary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _buildMenuTile(
+                icon: Icons.admin_panel_settings_outlined,
+                title: 'Coordinator Dashboard',
+                subtitle: 'School overview, approvals, reviews & feedback',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CoordinatorDashboardScreen()),
+                  );
+                },
+              ),
+            ],
             const SizedBox(height: 20),
 
             Text(

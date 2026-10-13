@@ -39,6 +39,77 @@ void main() {
       expect(serialized['role'], 'ADMIN');
       expect((serialized['profile'] as Map)['fullName'], 'Rahul Sharma');
     });
+
+    test('deserializes new login API response format correctly', () {
+      final newApiResponse = {
+        "status": "success",
+        "data": {
+          "token": "mock-jwt-token",
+          "user": {
+            "id": "793a8745-5ca4-4c49-aab9-2b4fb5fe7031",
+            "email": "dharmendra.hbti@hotmail.com",
+            "role": "COORDINATOR",
+            "createdAt": "2026-06-08T04:30:27.413Z",
+            "resetToken": null,
+            "resetTokenExpiry": null,
+            "isDeleted": false,
+            "emailVerified": true,
+            "emailVerifiedAt": "2026-06-08T04:30:27.413Z",
+            "emailVerifyToken": null,
+            "emailVerifyTokenExpiry": null,
+            "approvalStatus": "APPROVED",
+            "approvedAt": "2026-06-08T04:30:27.413Z",
+            "approvedBy": null,
+            "rejectionReason": null,
+            "tokenVersion": 0,
+            "notifyEmailOptOut": false,
+            "profile": {
+              "id": "a877283e-d1dc-4175-8836-699ba9b37c29",
+              "userId": "793a8745-5ca4-4c49-aab9-2b4fb5fe7031",
+              "fullName": "Dharmendra Kumar",
+              "batchId": 12,
+              "currentRole": "Software Architect",
+              "company": "TCS",
+              "location": "Stockholm",
+              "openToMentor": true,
+              "industry": "IT/Software",
+              "imageUrl": null,
+              "association": "Alumni",
+              "postingStatus": null,
+              "country": "Sweden",
+              "jnvId": 346,
+              "legacyAlumniId": null,
+              "jnvVerified": true,
+              "jnvVerifiedAt": "2026-10-01T02:48:09.625Z",
+              "jnvVerifiedBy": "b52f8eae-174b-4334-8e61-7ef947847956",
+              "hideFromDirectory": false,
+              "profileVisibility": "PUBLIC",
+              "emailVisibility": "NONE",
+              "phoneVisibility": "NONE"
+            }
+          }
+        }
+      };
+
+      final data = newApiResponse['data'] as Map<String, dynamic>;
+      final user = AuthUser.fromJson(data['user'] as Map<String, dynamic>);
+
+      expect(user.id, "793a8745-5ca4-4c49-aab9-2b4fb5fe7031");
+      expect(user.email, "dharmendra.hbti@hotmail.com");
+      expect(user.role, "COORDINATOR");
+      expect(user.isCoordinator, true);
+      expect(user.isApproved, true);
+      expect(user.emailVerified, true);
+      expect(user.profile?.fullName, "Dharmendra Kumar");
+      expect(user.profile?.currentRole, "Software Architect");
+      expect(user.profile?.company, "TCS");
+      expect(user.profile?.location, "Stockholm");
+      expect(user.profile?.country, "Sweden");
+      expect(user.profile?.jnvId, 346);
+      expect(user.profile?.batchId, 12);
+      expect(user.profile?.jnvVerified, true);
+      expect(user.profile?.openToMentor, true);
+    });
   });
 
   group('School & Batch Models', () {

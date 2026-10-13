@@ -77,9 +77,12 @@ class AuthProvider extends ChangeNotifier {
     if (_token == null || _token!.isEmpty) return;
     try {
       final res = await _api.get('/auth/me', token: _token);
-      final userData = res['data'] is Map<String, dynamic>
+      final resData = res['data'] is Map<String, dynamic>
           ? res['data'] as Map<String, dynamic>
-          : (res['user'] is Map<String, dynamic> ? res['user'] as Map<String, dynamic> : null);
+          : res;
+      final userData = resData['user'] is Map<String, dynamic>
+          ? resData['user'] as Map<String, dynamic>
+          : (resData['id'] != null ? resData : null);
 
       if (userData != null) {
         _user = AuthUser.fromJson(userData);

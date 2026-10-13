@@ -13,6 +13,15 @@ class ApiClient {
 
   /// Returns the client type ('web', 'ios', or 'android') expected by the API.
   static String get clientHeaderValue {
+    if (ApiConfig.clientKey.contains('_web_')) {
+      return 'web';
+    }
+    if (ApiConfig.clientKey.contains('_ios_')) {
+      return 'ios';
+    }
+    if (ApiConfig.clientKey.contains('_android_')) {
+      return 'android';
+    }
     if (kIsWeb) return 'web';
     switch (defaultTargetPlatform) {
       case TargetPlatform.iOS:

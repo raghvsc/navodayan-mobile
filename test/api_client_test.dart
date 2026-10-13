@@ -31,9 +31,10 @@ void main() {
       expect((res['data'] as List).first['fullName'], 'Test Navodayan');
     });
 
-    test('sends X-Navodayan-Client header on all requests', () async {
+    test('sends X-Navodayan-Client and X-Navodayan-Client-Key headers on all requests', () async {
       final mockClient = MockClient((request) async {
         expect(request.headers['X-Navodayan-Client'], anyOf('android', 'ios', 'web'));
+        expect(request.headers['X-Navodayan-Client-Key'], isNotEmpty);
         return http.Response(jsonEncode({'status': 'ok'}), 200);
       });
 

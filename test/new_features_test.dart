@@ -93,12 +93,10 @@ void main() {
       await tester.pumpWidget(createTestWidget(const ContributionsScreen()));
       await tester.pump();
 
-      expect(find.text('Contributions & Support'), findsOneWidget);
-      expect(find.text('Overview'), findsOneWidget);
-      expect(find.text('Financial'), findsOneWidget);
-      expect(find.text('Volunteer Hours'), findsOneWidget);
-      expect(find.text('Campaigns'), findsOneWidget);
-      expect(find.text('Add Contribution'), findsOneWidget);
+      expect(find.text('My Contributions'), findsWidgets);
+      expect(find.text('Campaigns'), findsWidgets);
+      expect(find.text('Log Money'), findsOneWidget);
+      expect(find.text('Log Hours'), findsOneWidget);
     });
   });
 

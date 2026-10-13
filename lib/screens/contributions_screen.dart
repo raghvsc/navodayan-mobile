@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/contribution.dart';
 import '../providers/auth_provider.dart';
 import '../services/contributions_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/coordinator_contributions_view.dart';
 
 class ContributionsScreen extends StatefulWidget {
   const ContributionsScreen({super.key});
@@ -14,7 +16,7 @@ class ContributionsScreen extends StatefulWidget {
 
 class _ContributionsScreenState extends State<ContributionsScreen> with SingleTickerProviderStateMixin {
   final ContributionsService _service = ContributionsService();
-  late TabController _tabController;
+  TabController? _tabController;
 
   ContributionsData? _data;
   List<ContributionCampaign> _campaigns = [];
@@ -24,17 +26,24 @@ class _ContributionsScreenState extends State<ContributionsScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _loadData();
+    _loadMemberData();
+  }
+
+  void _initTabController(bool isCoordinator) {
+    final length = isCoordinator ? 2 : 2;
+    if (_tabController == null || _tabController!.length != length) {
+      _tabController?.dispose();
+      _tabController = TabController(length: length, vsync: this);
+    }
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadMemberData() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -56,6 +65,7 @@ class _ContributionsScreenState extends State<ContributionsScreen> with SingleTi
     } catch (e) {
       if (mounted) {
         setState(() {
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
           _data ??= const ContributionsData();
           _campaigns = [];
           _isLoading = false;
@@ -64,13 +74,36 @@ class _ContributionsScreenState extends State<ContributionsScreen> with SingleTi
     }
   }
 
-  void _showLogFinancialDialog() {
-    final amountController = TextEditingController();
-    final noteController = TextEditingController();
-    String? selectedCampaignId;
-    if (_campaigns.isNotEmpty) {
-      selectedCampaignId = _campaigns.first.id;
+  String _formatCurrency(num amount) {
+    final formatter = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2);
+    return formatter.format(amount);
+  }
+
+  String _formatDate(dynamic dateStr) {
+    if (dateStr == null || dateStr.toString().isEmpty) return '';
+    try {
+      final dt = DateTime.parse(dateStr.toString());
+      return DateFormat('d MMM yyyy').format(dt);
+    } catch (_) {
+      return dateStr.toString();
     }
+  }
+
+  // DIALOG: LOG MONEY (MEMBER)
+  void _showLogMoneyDialog() {
+    if (_campaigns.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No open campaigns available right now. Ask your coordinator to create one.')),
+      );
+      return;
+    }
+
+    String selectedCampaignId = _campaigns.first.id;
+    final amountController = TextEditingController();
+    bool isCommitment = false;
+    String selectedMode = 'UPI';
+    DateTime selectedDate = DateTime.now();
+    final noteController = TextEditingController();
     bool isSubmitting = false;
 
     showModalBottomSheet(
@@ -82,14 +115,14 @@ class _ContributionsScreenState extends State<ContributionsScreen> with SingleTi
           final colors = AppColors.of(context);
           return Container(
             padding: EdgeInsets.only(
-              left: 24,
-              right: 24,
-              top: 24,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
             ),
             decoration: BoxDecoration(
               color: colors.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -100,12 +133,8 @@ class _ContributionsScreenState extends State<ContributionsScreen> with SingleTi
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Log Financial Contribution',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: colors.textPrimary,
-                        ),
+                        isCommitment ? 'Commit to Give Later' : 'Money Already Given',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colors.textPrimary),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
@@ -113,99 +142,157 @@ class _ContributionsScreenState extends State<ContributionsScreen> with SingleTi
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  if (_campaigns.isNotEmpty) ...[
-                    Text(
-                      'Select Campaign (Optional)',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.textSecondary),
-                    ),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      value: selectedCampaignId,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      ),
-                      items: _campaigns.map((c) {
-                        return DropdownMenuItem(
-                          value: c.id,
-                          child: Text(c.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        );
-                      }).toList(),
-                      onChanged: (val) => setModalState(() => selectedCampaignId = val),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                  const SizedBox(height: 4),
                   Text(
-                    'Amount (₹)',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.textSecondary),
+                    isCommitment
+                        ? 'Record an amount you will give when this campaign needs it. Counted once transfer is verified.'
+                        : 'Log money you have already sent to a campaign. The coordinator will verify it.',
+                    style: TextStyle(fontSize: 12, color: colors.textSecondary),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 14),
+
+                  // TOGGLE: Money Already Given vs Commit to Give Later
+                  Container(
+                    decoration: BoxDecoration(
+                      color: colors.background,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Center(child: Text('Money Sent')),
+                            selected: !isCommitment,
+                            onSelected: (val) {
+                              if (val) setModalState(() => isCommitment = false);
+                            },
+                          ),
+                        ),
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Center(child: Text('Commit Later')),
+                            selected: isCommitment,
+                            onSelected: (val) {
+                              if (val) setModalState(() => isCommitment = true);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  DropdownButtonFormField<String>(
+                    value: selectedCampaignId,
+                    decoration: const InputDecoration(labelText: 'Campaign *'),
+                    items: _campaigns.map((c) {
+                      return DropdownMenuItem<String>(
+                        value: c.id,
+                        child: Text(c.title, overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setModalState(() => selectedCampaignId = val);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
                   TextField(
                     controller: amountController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. 5000',
-                      prefixIcon: const Icon(Icons.currency_rupee_rounded, size: 20),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Amount (₹) *', prefixText: '₹ '),
+                  ),
+                  const SizedBox(height: 12),
+
+                  if (!isCommitment) ...[
+                    DropdownButtonFormField<String>(
+                      value: selectedMode,
+                      decoration: const InputDecoration(labelText: 'Payment Mode *'),
+                      items: const [
+                        DropdownMenuItem(value: 'UPI', child: Text('UPI')),
+                        DropdownMenuItem(value: 'BANK_TRANSFER', child: Text('Bank Transfer')),
+                        DropdownMenuItem(value: 'CASH', child: Text('Cash')),
+                        DropdownMenuItem(value: 'CHEQUE', child: Text('Cheque')),
+                        DropdownMenuItem(value: 'OTHER', child: Text('Other')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setModalState(() => selectedMode = val);
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Note / Reference (Optional)',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.textSecondary),
-                  ),
-                  const SizedBox(height: 6),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Sent Date: ${DateFormat('d MMM yyyy').format(selectedDate)}',
+                            style: TextStyle(fontSize: 13, color: colors.textPrimary),
+                          ),
+                        ),
+                        TextButton.icon(
+                          icon: const Icon(Icons.calendar_today_rounded, size: 16),
+                          label: const Text('Change Date'),
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setModalState(() => selectedDate = picked);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+
                   TextField(
                     controller: noteController,
-                    maxLines: 2,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. For computer lab refurbishment',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+                    decoration: const InputDecoration(labelText: 'Optional Note / Reference'),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
+
                   ElevatedButton(
                     onPressed: isSubmitting
                         ? null
                         : () async {
-                            final amount = num.tryParse(amountController.text.trim());
+                            final amount = double.tryParse(amountController.text.trim());
                             if (amount == null || amount <= 0) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Please enter a valid contribution amount')),
                               );
                               return;
                             }
+
                             setModalState(() => isSubmitting = true);
                             try {
                               await _service.logFinancialContribution(
                                 campaignId: selectedCampaignId,
                                 amount: amount,
+                                mode: isCommitment ? 'COMMITTED' : selectedMode,
                                 note: noteController.text.trim(),
+                                receivedAt: selectedDate.toIso8601String().substring(0, 10),
                               );
                               if (ctx.mounted) Navigator.pop(ctx);
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Contribution logged successfully!')),
-                                );
-                                _loadData();
-                              }
+                              _loadMemberData();
                             } catch (e) {
                               setModalState(() => isSubmitting = false);
-                              if (mounted) {
+                              if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Failed to log contribution: $e')),
+                                  SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
                                 );
                               }
                             }
                           },
                     style: ElevatedButton.styleFrom(
+                      backgroundColor: colors.primary,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: isSubmitting
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Submit Contribution', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(isSubmitting ? 'Submitting...' : 'Submit Money Log'),
                   ),
                 ],
               ),
@@ -216,17 +303,14 @@ class _ContributionsScreenState extends State<ContributionsScreen> with SingleTi
     );
   }
 
+  // DIALOG: LOG HOURS (MEMBER)
   void _showLogHoursDialog() {
-    final hoursController = TextEditingController();
-    final descController = TextEditingController();
+    final titleController = TextEditingController();
     String selectedType = 'MENTORING';
-    final types = [
-      {'key': 'MENTORING', 'label': 'Mentoring Students'},
-      {'key': 'TEACHING', 'label': 'Guest Lecture / Teaching'},
-      {'key': 'EVENT', 'label': 'Event Organization'},
-      {'key': 'CAMPUS_VISIT', 'label': 'Campus Visit & Guidance'},
-      {'key': 'OTHER', 'label': 'Other Volunteering'},
-    ];
+    final hoursController = TextEditingController();
+    String? selectedCampaignId;
+    final noteController = TextEditingController();
+    DateTime selectedDate = DateTime.now();
     bool isSubmitting = false;
 
     showModalBottomSheet(
@@ -238,14 +322,14 @@ class _ContributionsScreenState extends State<ContributionsScreen> with SingleTi
           final colors = AppColors.of(context);
           return Container(
             padding: EdgeInsets.only(
-              left: 24,
-              right: 24,
-              top: 24,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
             ),
             decoration: BoxDecoration(
               color: colors.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -256,12 +340,8 @@ class _ContributionsScreenState extends State<ContributionsScreen> with SingleTi
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Log Volunteer Hours',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: colors.textPrimary,
-                        ),
+                        'Record Volunteer Hours',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colors.textPrimary),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
@@ -269,99 +349,131 @@ class _ContributionsScreenState extends State<ContributionsScreen> with SingleTi
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 4),
                   Text(
-                    'Activity Type',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.textSecondary),
+                    'Record hours for mentoring, lectures, volunteering, hosting, goods, or app work.',
+                    style: TextStyle(fontSize: 12, color: colors.textSecondary),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 16),
+
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Title / Activity *',
+                      hintText: 'e.g., Online Python workshop for Class 11',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
                   DropdownButtonFormField<String>(
                     value: selectedType,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    ),
-                    items: types.map((t) {
-                      return DropdownMenuItem(
-                        value: t['key'],
-                        child: Text(t['label']!),
-                      );
-                    }).toList(),
+                    decoration: const InputDecoration(labelText: 'Type *'),
+                    items: volunteerTypes.entries
+                        .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                        .toList(),
                     onChanged: (val) {
                       if (val != null) setModalState(() => selectedType = val);
                     },
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Hours Spent',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.textSecondary),
-                  ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 12),
+
                   TextField(
                     controller: hoursController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. 4',
-                      prefixIcon: const Icon(Icons.timer_outlined, size: 20),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Hours Given *', hintText: 'e.g., 3.0'),
+                  ),
+                  const SizedBox(height: 12),
+
+                  if (_campaigns.isNotEmpty) ...[
+                    DropdownButtonFormField<String>(
+                      value: selectedCampaignId,
+                      decoration: const InputDecoration(labelText: 'Related Campaign (Optional)'),
+                      items: [
+                        const DropdownMenuItem<String>(value: null, child: Text('None')),
+                        ..._campaigns.map((c) => DropdownMenuItem<String>(
+                              value: c.id,
+                              child: Text(c.title, overflow: TextOverflow.ellipsis),
+                            )),
+                      ],
+                      onChanged: (val) => setModalState(() => selectedCampaignId = val),
                     ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Date: ${DateFormat('d MMM yyyy').format(selectedDate)}',
+                          style: TextStyle(fontSize: 13, color: colors.textPrimary),
+                        ),
+                      ),
+                      TextButton.icon(
+                        icon: const Icon(Icons.calendar_today_rounded, size: 16),
+                        label: const Text('Change Date'),
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            setModalState(() => selectedDate = picked);
+                          }
+                        },
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Description / Highlights',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.textSecondary),
-                  ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
+
                   TextField(
-                    controller: descController,
-                    maxLines: 2,
-                    decoration: InputDecoration(
-                      hintText: 'What did you do with students or alumni?',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+                    controller: noteController,
+                    decoration: const InputDecoration(labelText: 'Optional Note'),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
+
                   ElevatedButton(
                     onPressed: isSubmitting
                         ? null
                         : () async {
-                            final hours = num.tryParse(hoursController.text.trim());
-                            if (hours == null || hours <= 0) {
+                            final hours = double.tryParse(hoursController.text.trim());
+                            final title = titleController.text.trim();
+                            if (title.isEmpty || hours == null || hours <= 0) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Please enter valid hours')),
+                                const SnackBar(content: Text('Please enter valid title and hours')),
                               );
                               return;
                             }
+
                             setModalState(() => isSubmitting = true);
                             try {
                               await _service.logPhysicalContribution(
                                 type: selectedType,
                                 hours: hours,
-                                description: descController.text.trim(),
+                                title: title,
+                                campaignId: selectedCampaignId,
+                                note: noteController.text.trim(),
+                                contributedAt: selectedDate.toIso8601String().substring(0, 10),
                               );
                               if (ctx.mounted) Navigator.pop(ctx);
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Volunteer hours logged successfully!')),
-                                );
-                                _loadData();
-                              }
+                              _loadMemberData();
                             } catch (e) {
                               setModalState(() => isSubmitting = false);
-                              if (mounted) {
+                              if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Failed to log hours: $e')),
+                                  SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
                                 );
                               }
                             }
                           },
                     style: ElevatedButton.styleFrom(
+                      backgroundColor: colors.primary,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: isSubmitting
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Submit Hours', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(isSubmitting ? 'Submitting...' : 'Submit Volunteer Hours'),
                   ),
                 ],
               ),
@@ -370,537 +482,509 @@ class _ContributionsScreenState extends State<ContributionsScreen> with SingleTi
         },
       ),
     );
+  }
+
+  Future<void> _handleDeleteFinancial(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Entry?'),
+        content: const Text('Are you sure you want to delete this pending contribution log?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _service.deleteFinancialContribution(id);
+        _loadMemberData();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _handleDeletePhysical(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Hours Log?'),
+        content: const Text('Are you sure you want to delete this pending hours log?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _service.deletePhysicalContribution(id);
+        _loadMemberData();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     final auth = context.watch<AuthProvider>();
+    final isCoordinator = auth.user?.role == 'COORDINATOR';
+
+    _initTabController(isCoordinator);
 
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('Contributions & Support'),
+        title: Text(isCoordinator ? 'Contributions & Ledger' : 'My Contributions'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: _loadData,
+            onPressed: () {
+              _loadMemberData();
+            },
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          isScrollable: true,
           labelColor: colors.primary,
           unselectedLabelColor: colors.textSecondary,
           indicatorColor: colors.primary,
-          tabs: const [
-            Tab(text: 'Overview'),
-            Tab(text: 'Financial'),
-            Tab(text: 'Volunteer Hours'),
-            Tab(text: 'Campaigns'),
-          ],
+          tabs: isCoordinator
+              ? const [
+                  Tab(icon: Icon(Icons.account_balance_wallet_rounded, size: 20), text: 'Coordinator Ledger'),
+                  Tab(icon: Icon(Icons.person_rounded, size: 20), text: 'My Personal'),
+                ]
+              : const [
+                  Tab(icon: Icon(Icons.volunteer_activism_rounded, size: 20), text: 'My Contributions'),
+                  Tab(icon: Icon(Icons.campaign_rounded, size: 20), text: 'Campaigns'),
+                ],
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildOverviewTab(colors, auth),
-                    _buildFinancialTab(colors),
-                    _buildPhysicalTab(colors),
-                    _buildCampaignsTab(colors),
-                  ],
+      body: isCoordinator
+          ? TabBarView(
+              controller: _tabController,
+              children: [
+                CoordinatorContributionsView(
+                  onDataChanged: _loadMemberData,
                 ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-            builder: (ctx) => SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: Color(0xFF10B981),
-                      child: Icon(Icons.currency_rupee_rounded, color: Colors.white),
-                    ),
-                    title: const Text('Log Financial Contribution', style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: const Text('Donate or record financial support to JNV projects'),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _showLogFinancialDialog();
-                    },
-                  ),
-                  ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: Color(0xFF3B82F6),
-                      child: Icon(Icons.volunteer_activism_rounded, color: Colors.white),
-                    ),
-                    title: const Text('Log Volunteer Hours', style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: const Text('Record mentoring, teaching or on-campus hours'),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _showLogHoursDialog();
-                    },
-                  ),
-                ],
-              ),
+                _buildMemberContributionsView(colors),
+              ],
+            )
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildMemberContributionsView(colors),
+                _buildCampaignsBrowserView(colors),
+              ],
             ),
-          );
-        },
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Contribution'),
-      ),
     );
   }
 
-  Widget _buildOverviewTab(ThemePalette colors, AuthProvider auth) {
+  // VIEW 1: MY CONTRIBUTIONS (EXACT ARCHITECTURE OF https://www.navodayan.org/contributions)
+  Widget _buildMemberContributionsView(ThemePalette colors) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     final summary = _data?.summary ?? const ContributionSummary();
-    final schoolName = _data?.jnvName ?? 'Your JNV';
+    final financialLogs = _data?.financial ?? [];
+    final physicalLogs = _data?.physical ?? [];
 
     return RefreshIndicator(
-      onRefresh: _loadData,
+      onRefresh: _loadMemberData,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // School Context Banner
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [colors.primary, colors.secondary],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.school_rounded, color: Colors.white, size: 24),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          schoolName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Supporting alumni, current students, and school infrastructure development through collective Navodayan contributions.',
-                    style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
+            // Top Description
             Text(
-              'CONTRIBUTION SUMMARY',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.1,
-                color: colors.textSecondary,
-              ),
+              'My Contributions',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: colors.textPrimary),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
+            Text(
+              'Log money you already sent to a school or country campaign, or hours you gave. The coordinator for that campaign verifies both. Verified money shows on the campaign public totals.',
+              style: TextStyle(fontSize: 13, color: colors.textSecondary, height: 1.45),
+            ),
+            const SizedBox(height: 16),
 
+            if (_errorMessage != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Text(_errorMessage!, style: TextStyle(fontSize: 12.5, color: Colors.red.shade900)),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // 5 STAT CARDS
             Row(
               children: [
                 Expanded(
-                  child: _buildMetricCard(
-                    colors,
-                    title: 'Verified Funds',
-                    value: '₹${summary.verifiedMoney}',
-                    icon: Icons.check_circle_outline_rounded,
-                    color: colors.success,
+                  child: _buildSummaryCard(
+                    title: 'Verified Money',
+                    value: _formatCurrency(summary.verifiedMoney),
+                    colors: colors,
+                    valueColor: Colors.green.shade800,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: _buildMetricCard(
-                    colors,
-                    title: 'Verified Hours',
-                    value: '${summary.verifiedHours} hrs',
-                    icon: Icons.timer_outlined,
-                    color: colors.primary,
+                  child: _buildSummaryCard(
+                    title: 'Pending Money',
+                    value: _formatCurrency(summary.pendingMoney),
+                    colors: colors,
+                    valueColor: Colors.orange.shade800,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
-                  child: _buildMetricCard(
-                    colors,
-                    title: 'Pending Verification',
-                    value: '₹${summary.pendingMoney}',
-                    icon: Icons.hourglass_top_rounded,
-                    color: Colors.orange,
+                  child: _buildSummaryCard(
+                    title: 'Committed Money',
+                    value: _formatCurrency(summary.committedMoney),
+                    colors: colors,
+                    valueColor: Colors.lightBlue.shade800,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: _buildMetricCard(
-                    colors,
+                  child: _buildSummaryCard(
+                    title: 'Verified Hours',
+                    value: '${summary.verifiedHours} hrs',
+                    colors: colors,
+                    valueColor: Colors.indigo.shade800,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildSummaryCard(
                     title: 'Pending Hours',
                     value: '${summary.pendingHours} hrs',
-                    icon: Icons.pending_actions_rounded,
-                    color: Colors.orange,
+                    colors: colors,
+                    valueColor: Colors.amber.shade900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // ACTION BUTTONS
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _showLogMoneyDialog,
+                    icon: const Icon(Icons.currency_rupee_rounded, size: 16),
+                    label: const Text('Log Money'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _showLogHoursDialog,
+                    icon: const Icon(Icons.access_time_rounded, size: 16),
+                    label: const Text('Log Hours'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 24),
 
-            // Quick Actions
+            // SECTION 1: MONEY LOGS
             Text(
-              'QUICK ACTIONS',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.1,
-                color: colors.textSecondary,
-              ),
+              'Money Logs (${financialLogs.length})',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: colors.textPrimary),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _showLogFinancialDialog,
-                    icon: const Icon(Icons.currency_rupee_rounded, size: 18),
-                    label: const Text('Donate Funds'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
+            const SizedBox(height: 8),
+            if (financialLogs.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: colors.border),
+                ),
+                child: Center(
+                  child: Text('No money logs yet.', style: TextStyle(fontSize: 12.5, color: colors.textSecondary)),
+                ),
+              )
+            else
+              ...financialLogs.map((item) {
+                final isPending = item.status == 'PENDING';
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: colors.border),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _showLogHoursDialog,
-                    icon: const Icon(Icons.volunteer_activism_rounded, size: 18),
-                    label: const Text('Log Hours'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMetricCard(
-    ThemePalette colors, {
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: TextStyle(fontSize: 12, color: colors.textSecondary, fontWeight: FontWeight.w500),
-              ),
-              Icon(icon, size: 18, color: color),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFinancialTab(ThemePalette colors) {
-    final list = _data?.financial ?? [];
-    if (list.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.account_balance_wallet_outlined, size: 56, color: colors.textSecondary),
-            const SizedBox(height: 12),
-            Text(
-              'No financial contributions recorded yet',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.textPrimary),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Make a donation to help support your JNV',
-              style: TextStyle(fontSize: 13, color: colors.textSecondary),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _showLogFinancialDialog,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Record Contribution'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(20),
-      itemCount: list.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = list[index];
-        final isVerified = item.status == 'VERIFIED';
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: colors.border),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: isVerified ? colors.success.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
-                child: Icon(
-                  Icons.currency_rupee_rounded,
-                  color: isVerified ? colors.success : Colors.orange,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '₹${item.amount}',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                    ),
-                    if (item.campaignTitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        item.campaignTitle!,
-                        style: TextStyle(fontSize: 12, color: colors.textSecondary),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(_formatCurrency(item.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                                const SizedBox(width: 8),
+                                _buildStatusBadge(item.status),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${item.campaignTitle ?? "General"} · ${item.mode ?? "UPI"} · ${_formatDate(item.createdAt)}',
+                              style: TextStyle(fontSize: 11.5, color: colors.textSecondary),
+                            ),
+                            if (item.note != null && item.note!.isNotEmpty)
+                              Text(item.note!, style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: colors.textSecondary)),
+                            if (item.rejectionReason != null && item.rejectionReason!.isNotEmpty)
+                              Text('Reason: ${item.rejectionReason}', style: const TextStyle(fontSize: 11, color: Colors.red)),
+                          ],
+                        ),
                       ),
+                      if (isPending)
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 18),
+                          onPressed: () => _handleDeleteFinancial(item.id),
+                          tooltip: 'Delete',
+                        ),
                     ],
-                    if (item.note != null) ...[
-                      const SizedBox(height: 2),
-                      Text(item.note!, style: TextStyle(fontSize: 12, color: colors.textSecondary)),
-                    ],
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isVerified ? colors.success.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  item.status ?? 'PENDING',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: isVerified ? colors.success : Colors.orange,
                   ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+                );
+              }),
 
-  Widget _buildPhysicalTab(ThemePalette colors) {
-    final list = _data?.physical ?? [];
-    if (list.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.volunteer_activism_outlined, size: 56, color: colors.textSecondary),
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
+
+            // SECTION 2: HOURS LOGS
             Text(
-              'No volunteer hours logged yet',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.textPrimary),
+              'Hours Logs (${physicalLogs.length})',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: colors.textPrimary),
             ),
-            const SizedBox(height: 6),
-            Text(
-              'Give back by mentoring students or organizing events',
-              style: TextStyle(fontSize: 13, color: colors.textSecondary),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _showLogHoursDialog,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Log Volunteer Hours'),
-            ),
+            const SizedBox(height: 8),
+            if (physicalLogs.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: colors.border),
+                ),
+                child: Center(
+                  child: Text('No hours logs yet.', style: TextStyle(fontSize: 12.5, color: colors.textSecondary)),
+                ),
+              )
+            else
+              ...physicalLogs.map((item) {
+                final isPending = item.status == 'PENDING';
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: colors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text('${item.hours} hrs · ${volunteerTypes[item.type] ?? item.type}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                                const SizedBox(width: 8),
+                                _buildStatusBadge(item.status),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${item.description ?? "Volunteering"} · ${_formatDate(item.createdAt)}',
+                              style: TextStyle(fontSize: 11.5, color: colors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isPending)
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 18),
+                          onPressed: () => _handleDeletePhysical(item.id),
+                          tooltip: 'Delete',
+                        ),
+                    ],
+                  ),
+                );
+              }),
+
+            const SizedBox(height: 30),
           ],
         ),
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(20),
-      itemCount: list.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = list[index];
-        final isVerified = item.status == 'VERIFIED';
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: colors.border),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: colors.primary.withValues(alpha: 0.1),
-                child: Icon(Icons.timer_rounded, color: colors.primary),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${item.hours} Hours • ${item.type}',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                    ),
-                    if (item.description != null && item.description!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(item.description!, style: TextStyle(fontSize: 12, color: colors.textSecondary)),
-                    ],
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isVerified ? colors.success.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  item.status ?? 'PENDING',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: isVerified ? colors.success : Colors.orange,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+      ),
     );
   }
 
-  Widget _buildCampaignsTab(ThemePalette colors) {
+  // VIEW 2: BROWSE CAMPAIGNS FOR MEMBERS
+  Widget _buildCampaignsBrowserView(ThemePalette colors) {
     if (_campaigns.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.campaign_outlined, size: 56, color: colors.textSecondary),
-            const SizedBox(height: 12),
-            Text(
-              'No active campaigns at this time',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: colors.textPrimary),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'School campaigns will appear here when announced by coordinators',
-              style: TextStyle(fontSize: 13, color: colors.textSecondary),
-            ),
-          ],
-        ),
+        child: Text('No active campaigns found.', style: TextStyle(color: colors.textSecondary)),
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(20),
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
       itemCount: _campaigns.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final campaign = _campaigns[index];
+        final c = _campaigns[index];
         return Container(
-          padding: const EdgeInsets.all(18),
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: colors.surface,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: colors.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                campaign.title,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary),
-              ),
-              if (campaign.purpose != null) ...[
-                const SizedBox(height: 4),
-                Text(campaign.purpose!, style: TextStyle(fontSize: 13, color: colors.textSecondary)),
-              ],
-              if (campaign.description != null) ...[
-                const SizedBox(height: 8),
-                Text(campaign.description!, style: TextStyle(fontSize: 12, color: colors.textSecondary)),
-              ],
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton(
-                  onPressed: _showLogFinancialDialog,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(c.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: colors.textPrimary)),
                   ),
-                  child: const Text('Contribute', style: TextStyle(fontSize: 13)),
-                ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: c.status == 'OPEN' ? Colors.green.withValues(alpha: 0.12) : Colors.grey.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      c.status ?? 'OPEN',
+                      style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: c.status == 'OPEN' ? Colors.green : Colors.grey),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${campaignPurposes[c.purpose] ?? c.purpose}${c.description != null ? " · ${c.description}" : ""}',
+                style: TextStyle(fontSize: 12, color: colors.textSecondary),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Raised: ${_formatCurrency(c.raisedAmount ?? 0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.green)),
+                  ElevatedButton(
+                    onPressed: _showLogMoneyDialog,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      backgroundColor: colors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Contribute', style: TextStyle(fontSize: 11)),
+                  ),
+                ],
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildSummaryCard({
+    required String title,
+    required String value,
+    required ThemePalette colors,
+    required Color valueColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(fontSize: 11, color: colors.textSecondary)),
+          const SizedBox(height: 4),
+          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: valueColor)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String? status) {
+    Color bg = Colors.grey.shade100;
+    Color fg = Colors.grey.shade800;
+    String label = status ?? 'VERIFIED';
+
+    if (label == 'VERIFIED') {
+      bg = Colors.green.shade50;
+      fg = Colors.green.shade800;
+    } else if (label == 'PENDING') {
+      bg = Colors.orange.shade50;
+      fg = Colors.orange.shade800;
+    } else if (label == 'REJECTED') {
+      bg = Colors.red.shade50;
+      fg = Colors.red.shade800;
+    } else if (label == 'COMMITTED') {
+      bg = Colors.lightBlue.shade50;
+      fg = Colors.lightBlue.shade800;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
+      child: Text(label, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: fg)),
     );
   }
 }

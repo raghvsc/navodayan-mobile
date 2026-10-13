@@ -4,9 +4,15 @@ import '../models/coordinator.dart';
 import '../providers/auth_provider.dart';
 import '../services/coordinator_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/coordinator_contributions_view.dart';
 
 class CoordinatorDashboardScreen extends StatefulWidget {
-  const CoordinatorDashboardScreen({super.key});
+  final int initialTabIndex;
+
+  const CoordinatorDashboardScreen({
+    super.key,
+    this.initialTabIndex = 0,
+  });
 
   @override
   State<CoordinatorDashboardScreen> createState() => _CoordinatorDashboardScreenState();
@@ -21,8 +27,6 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
   List<Map<String, dynamic>> _approvals = [];
   String? _approvalsMessage;
   List<Map<String, dynamic>> _coordinatorEvents = [];
-  Map<String, dynamic>? _contributionReviews;
-  Map<String, dynamic>? _campaignsData;
   Map<String, dynamic>? _batchCoordinatorsData;
   List<CoordinatorFeedback> _feedbacks = [];
   bool _isLoading = true;
@@ -30,7 +34,11 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(
+      length: 7,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 6),
+    );
     _loadAll();
   }
 
@@ -61,14 +69,6 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
           debugPrint('getCoordinatorEvents error: $e');
           return <Map<String, dynamic>>[];
         }),
-        _service.getContributionReviews().catchError((e) {
-          debugPrint('getContributionReviews error: $e');
-          return {'hoursVerified': 0, 'financial': [], 'physical': []};
-        }),
-        _service.getCampaigns().catchError((e) {
-          debugPrint('getCampaigns error: $e');
-          return {'campaigns': []};
-        }),
         _service.getBatchCoordinatorsData().catchError((e) {
           debugPrint('getBatchCoordinatorsData error: $e');
           return {'coordinators': []};
@@ -87,10 +87,8 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
           _approvals = (approvalsMap['items'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
           _approvalsMessage = approvalsMap['message'] as String?;
           _coordinatorEvents = results[3] as List<Map<String, dynamic>>;
-          _contributionReviews = results[4] as Map<String, dynamic>;
-          _campaignsData = results[5] as Map<String, dynamic>;
-          _batchCoordinatorsData = results[6] as Map<String, dynamic>;
-          _feedbacks = results[7] as List<CoordinatorFeedback>;
+          _batchCoordinatorsData = results[4] as Map<String, dynamic>;
+          _feedbacks = results[5] as List<CoordinatorFeedback>;
           _isLoading = false;
         });
       }
@@ -103,6 +101,8 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
       }
     }
   }
+
+  // --- ACTIONS & MODALS ---
 
   void _showSubmitFeedbackDialog() {
     final titleController = TextEditingController();
@@ -151,10 +151,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Category',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                  ),
+                  Text('Category', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     value: selectedType,
@@ -172,10 +169,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Subject',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                  ),
+                  Text('Subject', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: titleController,
@@ -185,10 +179,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Details',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                  ),
+                  Text('Details', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: descController,
@@ -302,10 +293,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Event Title',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                  ),
+                  Text('Event Title', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: titleController,
@@ -315,10 +303,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Description',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                  ),
+                  Text('Description', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: descController,
@@ -329,10 +314,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Location / Venue',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                  ),
+                  Text('Location / Venue', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: locationController,
@@ -455,10 +437,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Alumni Email',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                  ),
+                  Text('Alumni Email', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: emailController,
@@ -469,10 +448,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Batch Year (Optional)',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                  ),
+                  Text('Batch Year (Optional)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textPrimary)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: batchController,
@@ -533,6 +509,10 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     );
   }
 
+  // --- COORDINATOR CONTRIBUTIONS MODALS (MATCHING WEB) ---
+
+  // --- BUILD METHOD ---
+
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
@@ -590,7 +570,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     );
   }
 
-  // TAB 1: OVERVIEW (Exact text content from the web coordinator portal)
+  // TAB 1: OVERVIEW (Exact text content from web)
   Widget _buildOverviewTab(ThemePalette colors, AuthProvider auth, String scopeLabel) {
     final name = auth.user?.profile?.fullName ?? 'Coordinator';
 
@@ -601,27 +581,17 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Top Welcome Header
             Text(
               'Hello, $name',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: colors.textPrimary,
-              ),
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: colors.textPrimary),
             ),
             const SizedBox(height: 4),
             Text(
               scopeLabel,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: colors.primary,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.primary),
             ),
             const SizedBox(height: 20),
 
-            // Main Overview Card matching Web Dashboard
             Container(
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
@@ -641,66 +611,29 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                 children: [
                   Text(
                     'Welcome to your Coordinator Dashboard',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: colors.textPrimary,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colors.textPrimary),
                   ),
                   const SizedBox(height: 10),
                   Text(
                     'Use the sidebar for the pages enabled for your coordinator assignment. An admin can change this under Feature access.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: colors.textSecondary,
-                      height: 1.45,
-                    ),
+                    style: TextStyle(fontSize: 14, color: colors.textSecondary, height: 1.45),
                   ),
                   const SizedBox(height: 20),
                   const Divider(),
                   const SizedBox(height: 14),
                   Text(
                     'Coordinator Portal Features:',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                      color: colors.textPrimary,
-                    ),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5, color: colors.textPrimary),
                   ),
                   const SizedBox(height: 12),
-                  _buildBulletPoint(
-                    colors,
-                    'View members in your assigned batch, school, state, country, or national list.',
-                  ),
-                  _buildBulletPoint(
-                    colors,
-                    'Update login email for members shown on your Members page.',
-                  ),
-                  _buildBulletPoint(
-                    colors,
-                    'Approve or reject verified members in your assignment.',
-                  ),
-                  _buildBulletPoint(
-                    colors,
-                    'Create and manage community events.',
-                  ),
-                  _buildBulletPoint(
-                    colors,
-                    'Broadcast announcements to members in your scope.',
-                  ),
-                  _buildBulletPoint(
-                    colors,
-                    'Record contributions and verify member money and hours logs.',
-                  ),
-                  _buildBulletPoint(
-                    colors,
-                    'See, invite, and revoke batch coordinators for this JNV.',
-                  ),
-                  _buildBulletPoint(
-                    colors,
-                    'Submit feedback or enhancement requests for admin to review.',
-                  ),
+                  _buildBulletPoint(colors, 'View members in your assigned batch, school, state, country, or national list.'),
+                  _buildBulletPoint(colors, 'Update login email for members shown on your Members page.'),
+                  _buildBulletPoint(colors, 'Approve or reject verified members in your assignment.'),
+                  _buildBulletPoint(colors, 'Create and manage community events.'),
+                  _buildBulletPoint(colors, 'Broadcast announcements to members in your scope.'),
+                  _buildBulletPoint(colors, 'Record contributions and verify member money and hours logs.'),
+                  _buildBulletPoint(colors, 'See, invite, and revoke batch coordinators for this JNV.'),
+                  _buildBulletPoint(colors, 'Submit feedback or enhancement requests for admin to review.'),
                 ],
               ),
             ),
@@ -720,20 +653,10 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
             margin: const EdgeInsets.only(top: 6, right: 12),
             width: 7,
             height: 7,
-            decoration: BoxDecoration(
-              color: colors.primary,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: colors.primary, shape: BoxShape.circle),
           ),
           Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 13.5,
-                color: colors.textSecondary,
-                height: 1.4,
-              ),
-            ),
+            child: Text(text, style: TextStyle(fontSize: 13.5, color: colors.textSecondary, height: 1.4)),
           ),
         ],
       ),
@@ -751,16 +674,9 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
             children: [
               Icon(Icons.people_outline_rounded, size: 56, color: colors.textSecondary),
               const SizedBox(height: 12),
-              Text(
-                'Members in your assignment',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary),
-              ),
+              Text('Members in your assignment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
               const SizedBox(height: 6),
-              Text(
-                'Verified alumni from your school or batch will appear here.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: colors.textSecondary),
-              ),
+              Text('Verified alumni from your school or batch will appear here.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: colors.textSecondary)),
             ],
           ),
         ),
@@ -789,10 +705,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
             children: [
               CircleAvatar(
                 backgroundColor: colors.primary,
-                child: Text(
-                  name.isNotEmpty ? name[0].toUpperCase() : 'M',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
+                child: Text(name.isNotEmpty ? name[0].toUpperCase() : 'M', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -842,23 +755,13 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
             children: [
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.12), shape: BoxShape.circle),
                 child: const Icon(Icons.info_outline_rounded, size: 40, color: Colors.orange),
               ),
               const SizedBox(height: 16),
-              Text(
-                'Coordinator Scope Assignment',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: colors.textPrimary),
-              ),
+              Text('Coordinator Scope Assignment', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: colors.textPrimary)),
               const SizedBox(height: 8),
-              Text(
-                _approvalsMessage!,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: colors.textSecondary, height: 1.4),
-              ),
+              Text(_approvalsMessage!, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: colors.textSecondary, height: 1.4)),
             ],
           ),
         ),
@@ -874,16 +777,9 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
             children: [
               Icon(Icons.verified_user_outlined, size: 56, color: colors.textSecondary),
               const SizedBox(height: 12),
-              Text(
-                'No pending approvals',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary),
-              ),
+              Text('No pending approvals', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
               const SizedBox(height: 6),
-              Text(
-                'New alumni registration requests will appear here for verification.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: colors.textSecondary),
-              ),
+              Text('New alumni registration requests will appear here for verification.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: colors.textSecondary)),
             ],
           ),
         ),
@@ -944,7 +840,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     );
   }
 
-  // TAB 4: EVENTS (Create events and list created events)
+  // TAB 4: EVENTS
   Widget _buildEventsTab(ThemePalette colors) {
     return Column(
       children: [
@@ -957,14 +853,8 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Coordinator Events',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                  ),
-                  Text(
-                    'Manage events for your JNV scope',
-                    style: TextStyle(fontSize: 12, color: colors.textSecondary),
-                  ),
+                  Text('Coordinator Events', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
+                  Text('Manage events for your JNV scope', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                 ],
               ),
               ElevatedButton.icon(
@@ -992,25 +882,15 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                       children: [
                         Icon(Icons.event_outlined, size: 56, color: colors.textSecondary),
                         const SizedBox(height: 12),
-                        Text(
-                          'No Coordinator Events Created',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                        ),
+                        Text('No Coordinator Events Created', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
                         const SizedBox(height: 6),
-                        Text(
-                          'Tap "Create Event" to schedule an alumni meetup, school activity, or reunion.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 13, color: colors.textSecondary),
-                        ),
+                        Text('Tap "Create Event" to schedule an alumni meetup or school activity.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: colors.textSecondary)),
                         const SizedBox(height: 18),
                         ElevatedButton.icon(
                           onPressed: _showCreateEventDialog,
                           icon: const Icon(Icons.add_rounded),
                           label: const Text('Create First Event'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: colors.primary,
-                            foregroundColor: Colors.white,
-                          ),
+                          style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: Colors.white),
                         ),
                       ],
                     ),
@@ -1039,21 +919,12 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                           Row(
                             children: [
                               Expanded(
-                                child: Text(
-                                  title,
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                                ),
+                                child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Text(
-                                  'ACTIVE',
-                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green),
-                                ),
+                                decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                                child: const Text('ACTIVE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green)),
                               ),
                             ],
                           ),
@@ -1071,8 +942,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                                 const SizedBox(width: 14),
                                 Icon(Icons.calendar_today_outlined, size: 14, color: colors.textSecondary),
                                 const SizedBox(width: 4),
-                                Text(date.substring(0, date.length > 10 ? 10 : date.length),
-                                    style: TextStyle(fontSize: 12, color: colors.textSecondary)),
+                                Text(date.substring(0, date.length > 10 ? 10 : date.length), style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                               ],
                             ],
                           ),
@@ -1087,121 +957,13 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     );
   }
 
-  // TAB 5: CONTRIBUTIONS
+  // TAB 5: CONTRIBUTIONS (EXACT ARCHITECTURE OF https://www.navodayan.org/coordinator/contributions)
   Widget _buildContributionsTab(ThemePalette colors) {
-    final reviews = _contributionReviews ?? {};
-    final financial = (reviews['financial'] as List<dynamic>?) ?? [];
-    final physical = (reviews['physical'] as List<dynamic>?) ?? [];
-    final totalHours = reviews['hoursVerified'] ?? 0;
-    final campaigns = (_campaignsData?['campaigns'] as List<dynamic>?) ?? [];
-
-    return RefreshIndicator(
-      onRefresh: _loadAll,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Verified Hours Card
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: colors.surface,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: colors.border),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: colors.primary.withValues(alpha: 0.1),
-                    child: Icon(Icons.verified_rounded, color: colors.primary),
-                  ),
-                  const SizedBox(width: 14),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Total Verified Volunteer Hours',
-                        style: TextStyle(fontSize: 12, color: colors.textSecondary),
-                      ),
-                      Text(
-                        '$totalHours Hours',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colors.primary),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Campaigns Section
-            Text(
-              'SCHOOL CAMPAIGNS',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.1,
-                color: colors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 10),
-            if (campaigns.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: colors.border),
-                ),
-                child: Center(
-                  child: Text(
-                    'No active contribution campaigns created for this scope.',
-                    style: TextStyle(fontSize: 13, color: colors.textSecondary),
-                  ),
-                ),
-              )
-            else
-              ...campaigns.map((c) => Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: colors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: colors.border),
-                    ),
-                    child: Text(c['title']?.toString() ?? 'Campaign', style: TextStyle(fontWeight: FontWeight.bold, color: colors.textPrimary)),
-                  )),
-
-            const SizedBox(height: 20),
-            Text(
-              'PENDING CONTRIBUTIONS TO REVIEW',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.1,
-                color: colors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 10),
-            if (financial.isEmpty && physical.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: colors.border),
-                ),
-                child: Center(
-                  child: Text(
-                    'No pending contributions awaiting review at this time.',
-                    style: TextStyle(color: colors.textSecondary),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+    final viewing = _context?.viewing;
+    final scopeLabel = viewing?.scopeLabel ?? viewing?.jnvName ?? 'this assignment';
+    return CoordinatorContributionsView(
+      scopeLabel: scopeLabel,
+      onDataChanged: _loadAll,
     );
   }
 
@@ -1221,14 +983,8 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Batch Coordinators',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                  ),
-                  Text(
-                    'Manage coordinators across batches',
-                    style: TextStyle(fontSize: 12, color: colors.textSecondary),
-                  ),
+                  Text('Batch Coordinators', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
+                  Text('Manage coordinators across batches', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                 ],
               ),
               ElevatedButton.icon(
@@ -1256,23 +1012,13 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                       children: [
                         Container(
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.12),
-                            shape: BoxShape.circle,
-                          ),
+                          decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.12), shape: BoxShape.circle),
                           child: const Icon(Icons.info_outline_rounded, size: 40, color: Colors.orange),
                         ),
                         const SizedBox(height: 16),
-                        Text(
-                          'Batch Coordinator Scope',
-                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                        ),
+                        Text('Batch Coordinator Scope', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: colors.textPrimary)),
                         const SizedBox(height: 8),
-                        Text(
-                          error,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 13, color: colors.textSecondary, height: 1.4),
-                        ),
+                        Text(error, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: colors.textSecondary, height: 1.4)),
                       ],
                     ),
                   ),
@@ -1286,25 +1032,15 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                           children: [
                             Icon(Icons.supervisor_account_outlined, size: 56, color: colors.textSecondary),
                             const SizedBox(height: 12),
-                            Text(
-                              'No Batch Coordinators Assigned',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                            ),
+                            Text('No Batch Coordinators Assigned', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
                             const SizedBox(height: 6),
-                            Text(
-                              'Invite alumni to coordinate specific batches for this JNV school.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 13, color: colors.textSecondary),
-                            ),
+                            Text('Invite alumni to coordinate specific batches for this JNV school.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: colors.textSecondary)),
                             const SizedBox(height: 18),
                             ElevatedButton.icon(
                               onPressed: _showInviteCoordinatorDialog,
                               icon: const Icon(Icons.person_add_rounded),
                               label: const Text('Invite Batch Coordinator'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: colors.primary,
-                                foregroundColor: Colors.white,
-                              ),
+                              style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: Colors.white),
                             ),
                           ],
                         ),
@@ -1330,10 +1066,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                             children: [
                               CircleAvatar(
                                 backgroundColor: colors.primary,
-                                child: Text(
-                                  name.isNotEmpty ? name[0].toUpperCase() : 'B',
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                ),
+                                child: Text(name.isNotEmpty ? name[0].toUpperCase() : 'B', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                               ),
                               const SizedBox(width: 14),
                               Expanded(
@@ -1355,7 +1088,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     );
   }
 
-  // TAB 7: FEEDBACK (Create and list all previously created feedback)
+  // TAB 7: FEEDBACK
   Widget _buildFeedbackTab(ThemePalette colors) {
     return Column(
       children: [
@@ -1368,14 +1101,8 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Coordinator Feedback',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                  ),
-                  Text(
-                    'Share feedback and feature requests with admins',
-                    style: TextStyle(fontSize: 12, color: colors.textSecondary),
-                  ),
+                  Text('Coordinator Feedback', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
+                  Text('Share feedback and feature requests with admins', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                 ],
               ),
               ElevatedButton.icon(
@@ -1403,25 +1130,15 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                       children: [
                         Icon(Icons.feedback_outlined, size: 56, color: colors.textSecondary),
                         const SizedBox(height: 12),
-                        Text(
-                          'No feedback submitted yet',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                        ),
+                        Text('No feedback submitted yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
                         const SizedBox(height: 6),
-                        Text(
-                          'Submit feedback, suggestions, or issues directly to the portal team.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 13, color: colors.textSecondary),
-                        ),
+                        Text('Submit feedback, suggestions, or issues directly to the portal team.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: colors.textSecondary)),
                         const SizedBox(height: 18),
                         ElevatedButton.icon(
                           onPressed: _showSubmitFeedbackDialog,
                           icon: const Icon(Icons.add_rounded),
                           label: const Text('Submit Feedback'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: colors.primary,
-                            foregroundColor: Colors.white,
-                          ),
+                          style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: Colors.white),
                         ),
                       ],
                     ),
@@ -1450,10 +1167,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(
-                                child: Text(
-                                  fb.title,
-                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                                ),
+                                child: Text(fb.title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: colors.textPrimary)),
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -1481,15 +1195,9 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                             ],
                           ),
                           const SizedBox(height: 6),
-                          Text(
-                            fb.description,
-                            style: TextStyle(fontSize: 13, color: colors.textSecondary, height: 1.4),
-                          ),
+                          Text(fb.description, style: TextStyle(fontSize: 13, color: colors.textSecondary, height: 1.4)),
                           const SizedBox(height: 8),
-                          Text(
-                            'Category: ${fb.type}',
-                            style: TextStyle(fontSize: 11, color: colors.textSecondary.withValues(alpha: 0.7)),
-                          ),
+                          Text('Category: ${fb.type}', style: TextStyle(fontSize: 11, color: colors.textSecondary.withValues(alpha: 0.7))),
                         ],
                       ),
                     );

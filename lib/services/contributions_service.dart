@@ -30,17 +30,21 @@ class ContributionsService {
   }
 
   Future<bool> logFinancialContribution({
-    String? campaignId,
+    required String campaignId,
     required num amount,
+    String mode = 'UPI',
     String? note,
+    String? receivedAt,
   }) async {
     try {
       await _client.post(
         '/contributions/financial',
         {
-          if (campaignId != null && campaignId.isNotEmpty) 'campaignId': campaignId,
+          'campaignId': campaignId,
           'amount': amount,
+          'mode': mode,
           if (note != null && note.isNotEmpty) 'note': note,
+          if (receivedAt != null && receivedAt.isNotEmpty) 'receivedAt': receivedAt,
         },
       );
       return true;
@@ -50,10 +54,23 @@ class ContributionsService {
     }
   }
 
+  Future<bool> deleteFinancialContribution(String id) async {
+    try {
+      await _client.delete('/contributions/financial/$id');
+      return true;
+    } catch (e) {
+      debugPrint('ContributionsService.deleteFinancialContribution error: $e');
+      rethrow;
+    }
+  }
+
   Future<bool> logPhysicalContribution({
     required String type,
     required num hours,
-    String? description,
+    required String title,
+    String? campaignId,
+    String? note,
+    String? contributedAt,
   }) async {
     try {
       await _client.post(
@@ -61,12 +78,25 @@ class ContributionsService {
         {
           'type': type,
           'hours': hours,
-          if (description != null && description.isNotEmpty) 'description': description,
+          'title': title,
+          if (campaignId != null && campaignId.isNotEmpty) 'campaignId': campaignId,
+          if (note != null && note.isNotEmpty) 'note': note,
+          if (contributedAt != null && contributedAt.isNotEmpty) 'contributedAt': contributedAt,
         },
       );
       return true;
     } catch (e) {
       debugPrint('ContributionsService.logPhysicalContribution error: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> deletePhysicalContribution(String id) async {
+    try {
+      await _client.delete('/contributions/physical/$id');
+      return true;
+    } catch (e) {
+      debugPrint('ContributionsService.deletePhysicalContribution error: $e');
       rethrow;
     }
   }

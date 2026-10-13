@@ -90,6 +90,22 @@ class CoordinatorService {
     }
   }
 
+  Future<bool> reviewContribution(String kind, String id, {required bool approve, String? reason}) async {
+    try {
+      await _client.post(
+        '/coordinator/contribution-reviews/$kind/$id',
+        {
+          'action': approve ? 'VERIFY' : 'REJECT',
+          if (reason != null && reason.isNotEmpty) 'reason': reason,
+        },
+      );
+      return true;
+    } catch (e) {
+      debugPrint('CoordinatorService.reviewContribution error: $e');
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> getCampaigns() async {
     try {
       final response = await _client.get('/coordinator/campaigns');
@@ -97,6 +113,121 @@ class CoordinatorService {
     } catch (e) {
       debugPrint('CoordinatorService.getCampaigns error: $e');
       return {'campaigns': []};
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getCampaignMembers() async {
+    try {
+      final response = await _client.get('/coordinator/campaigns/members');
+      final list = (response['data'] as List<dynamic>?) ?? [];
+      return list.cast<Map<String, dynamic>>();
+    } catch (e) {
+      debugPrint('CoordinatorService.getCampaignMembers error: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> searchDonors(String query) async {
+    try {
+      final response = await _client.get('/coordinator/campaigns/donors?q=${Uri.encodeComponent(query)}');
+      final list = (response['data'] as List<dynamic>?) ?? [];
+      return list.cast<Map<String, dynamic>>();
+    } catch (e) {
+      debugPrint('CoordinatorService.searchDonors error: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> getCampaignDetail(String campaignId) async {
+    try {
+      final response = await _client.get('/coordinator/campaigns/$campaignId');
+      return response['data'] is Map<String, dynamic> ? response['data'] : response;
+    } catch (e) {
+      debugPrint('CoordinatorService.getCampaignDetail error: $e');
+      return {};
+    }
+  }
+
+  Future<bool> createCampaign(Map<String, dynamic> payload) async {
+    try {
+      await _client.post('/coordinator/campaigns', payload);
+      return true;
+    } catch (e) {
+      debugPrint('CoordinatorService.createCampaign error: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> toggleCampaignStatus(String campaignId, String currentStatus) async {
+    try {
+      await _client.put(
+        '/coordinator/campaigns/$campaignId',
+        {'status': currentStatus == 'OPEN' ? 'CLOSED' : 'OPEN'},
+      );
+      return true;
+    } catch (e) {
+      debugPrint('CoordinatorService.toggleCampaignStatus error: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> logCampaignEntry(String campaignId, Map<String, dynamic> payload) async {
+    try {
+      await _client.post('/coordinator/campaigns/$campaignId/entries', payload);
+      return true;
+    } catch (e) {
+      debugPrint('CoordinatorService.logCampaignEntry error: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> deleteCampaignEntry(String campaignId, String entryId) async {
+    try {
+      await _client.delete('/coordinator/campaigns/$campaignId/entries/$entryId');
+      return true;
+    } catch (e) {
+      debugPrint('CoordinatorService.deleteCampaignEntry error: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> logCampaignExpense(String campaignId, Map<String, dynamic> payload) async {
+    try {
+      await _client.post('/coordinator/campaigns/$campaignId/expenses', payload);
+      return true;
+    } catch (e) {
+      debugPrint('CoordinatorService.logCampaignExpense error: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> deleteCampaignExpense(String campaignId, String expenseId) async {
+    try {
+      await _client.delete('/coordinator/campaigns/$campaignId/expenses/$expenseId');
+      return true;
+    } catch (e) {
+      debugPrint('CoordinatorService.deleteCampaignExpense error: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> logMemberPhysicalContribution(Map<String, dynamic> payload) async {
+    try {
+      await _client.post('/coordinator/physical-contributions', payload);
+      return true;
+    } catch (e) {
+      debugPrint('CoordinatorService.logMemberPhysicalContribution error: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> logMemberMoneyContribution(Map<String, dynamic> payload) async {
+    try {
+      await _client.post('/coordinator/member-contributions', payload);
+      return true;
+    } catch (e) {
+      debugPrint('CoordinatorService.logMemberMoneyContribution error: $e');
+      rethrow;
     }
   }
 

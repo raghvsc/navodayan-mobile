@@ -108,9 +108,10 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> login(String email, String password) async {
+  Future<void> login(String usernameOrEmail, String password) async {
     final res = await _api.post('/auth/login', {
-      'email': email,
+      'email': usernameOrEmail,
+      'username': usernameOrEmail,
       'password': password,
     });
 

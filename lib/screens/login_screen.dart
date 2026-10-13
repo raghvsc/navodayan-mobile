@@ -225,16 +225,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                             decoration: const InputDecoration(
-                              labelText: 'Email Address',
-                              hintText: 'your.email@example.com',
-                              prefixIcon: Icon(Icons.email_outlined),
+                              labelText: 'Email Address or Username',
+                              hintText: 'your.email@example.com or username',
+                              prefixIcon: Icon(Icons.person_outline),
                             ),
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
-                                return 'Please enter your email';
-                              }
-                              if (!value.contains('@')) {
-                                return 'Please enter a valid email';
+                                return 'Please enter your email or username';
                               }
                               return null;
                             },

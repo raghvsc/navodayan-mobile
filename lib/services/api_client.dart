@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 
@@ -10,12 +11,26 @@ class ApiClient {
       : baseUrl = baseUrl ?? ApiConfig.baseUrl,
         _client = client ?? http.Client();
 
+  /// Returns the client type ('web', 'ios', or 'android') expected by the API.
+  static String get clientHeaderValue {
+    if (kIsWeb) return 'web';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+        return 'ios';
+      case TargetPlatform.android:
+        return 'android';
+      default:
+        return 'android';
+    }
+  }
+
   Future<Map<String, dynamic>> _request(
     String endpoint, {
     String method = 'GET',
     dynamic body,
     String? token,
     Map<String, String>? queryParams,
+    Map<String, String>? headers,
   }) async {
     String url = '$baseUrl$endpoint';
     if (queryParams != null && queryParams.isNotEmpty) {
@@ -25,12 +40,21 @@ class ApiClient {
     }
 
     final uri = Uri.parse(url);
-    final headers = <String, String>{
+    final requestHeaders = <String, String>{
       'Content-Type': 'application/json',
+      'X-Navodayan-Client': clientHeaderValue,
     };
 
+    if (ApiConfig.clientKey.isNotEmpty) {
+      requestHeaders['X-Navodayan-Client-Key'] = ApiConfig.clientKey;
+    }
+
+    if (headers != null && headers.isNotEmpty) {
+      requestHeaders.addAll(headers);
+    }
+
     if (token != null && token.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $token';
+      requestHeaders['Authorization'] = 'Bearer $token';
     }
 
     http.Response response;
@@ -39,20 +63,20 @@ class ApiClient {
     try {
       switch (method.toUpperCase()) {
         case 'POST':
-          response = await _client.post(uri, headers: headers, body: bodyStr);
+          response = await _client.post(uri, headers: requestHeaders, body: bodyStr);
           break;
         case 'PUT':
-          response = await _client.put(uri, headers: headers, body: bodyStr);
+          response = await _client.put(uri, headers: requestHeaders, body: bodyStr);
           break;
         case 'PATCH':
-          response = await _client.patch(uri, headers: headers, body: bodyStr);
+          response = await _client.patch(uri, headers: requestHeaders, body: bodyStr);
           break;
         case 'DELETE':
-          response = await _client.delete(uri, headers: headers, body: bodyStr);
+          response = await _client.delete(uri, headers: requestHeaders, body: bodyStr);
           break;
         case 'GET':
         default:
-          response = await _client.get(uri, headers: headers);
+          response = await _client.get(uri, headers: requestHeaders);
           break;
       }
     } catch (e) {
@@ -87,8 +111,9 @@ class ApiClient {
     String endpoint, {
     String? token,
     Map<String, String>? queryParams,
+    Map<String, String>? headers,
   }) {
-    return _request(endpoint, method: 'GET', token: token, queryParams: queryParams);
+    return _request(endpoint, method: 'GET', token: token, queryParams: queryParams, headers: headers);
   }
 
   Future<Map<String, dynamic>> post(
@@ -96,8 +121,9 @@ class ApiClient {
     dynamic body, {
     String? token,
     Map<String, String>? queryParams,
+    Map<String, String>? headers,
   }) {
-    return _request(endpoint, method: 'POST', body: body, token: token, queryParams: queryParams);
+    return _request(endpoint, method: 'POST', body: body, token: token, queryParams: queryParams, headers: headers);
   }
 
   Future<Map<String, dynamic>> put(
@@ -105,8 +131,9 @@ class ApiClient {
     dynamic body, {
     String? token,
     Map<String, String>? queryParams,
+    Map<String, String>? headers,
   }) {
-    return _request(endpoint, method: 'PUT', body: body, token: token, queryParams: queryParams);
+    return _request(endpoint, method: 'PUT', body: body, token: token, queryParams: queryParams, headers: headers);
   }
 
   Future<Map<String, dynamic>> patch(
@@ -114,15 +141,17 @@ class ApiClient {
     dynamic body, {
     String? token,
     Map<String, String>? queryParams,
+    Map<String, String>? headers,
   }) {
-    return _request(endpoint, method: 'PATCH', body: body, token: token, queryParams: queryParams);
+    return _request(endpoint, method: 'PATCH', body: body, token: token, queryParams: queryParams, headers: headers);
   }
 
   Future<Map<String, dynamic>> delete(
     String endpoint, {
     String? token,
     Map<String, String>? queryParams,
+    Map<String, String>? headers,
   }) {
-    return _request(endpoint, method: 'DELETE', token: token, queryParams: queryParams);
+    return _request(endpoint, method: 'DELETE', token: token, queryParams: queryParams, headers: headers);
   }
 }

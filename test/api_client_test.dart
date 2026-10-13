@@ -10,6 +10,7 @@ void main() {
       final mockClient = MockClient((request) async {
         expect(request.url.path, '/api/directory/search');
         expect(request.headers['Authorization'], 'Bearer mock-jwt-token');
+        expect(request.headers['X-Navodayan-Client'], isNotNull);
 
         return http.Response(
           jsonEncode({
@@ -30,8 +31,20 @@ void main() {
       expect((res['data'] as List).first['fullName'], 'Test Navodayan');
     });
 
+    test('sends X-Navodayan-Client header on all requests', () async {
+      final mockClient = MockClient((request) async {
+        expect(request.headers['X-Navodayan-Client'], anyOf('android', 'ios', 'web'));
+        return http.Response(jsonEncode({'status': 'ok'}), 200);
+      });
+
+      final api = ApiClient(baseUrl: 'http://test.local/api', client: mockClient);
+      final res = await api.get('/test');
+      expect(res['status'], 'ok');
+    });
+
     test('throws exception with API error message on non-200', () async {
       final mockClient = MockClient((request) async {
+        expect(request.headers['X-Navodayan-Client'], isNotNull);
         return http.Response(
           jsonEncode({'message': 'Invalid credentials'}),
           401,
@@ -42,7 +55,7 @@ void main() {
       final api = ApiClient(baseUrl: 'http://test.local/api', client: mockClient);
 
       expect(
-        () => api.post('/auth/login', {'email': 'a@b.com', 'password': 'pass'}),
+        () => api.post('/auth/login', {'email': 'a@b.com', 'username': 'a@b.com', 'password': 'pass'}),
         throwsA(predicate((e) => e is Exception && e.toString().contains('Invalid credentials'))),
       );
     });

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/notification_item.dart';
 import '../providers/notification_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_bar_actions.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -89,6 +90,7 @@ class NotificationsScreen extends StatelessWidget {
                 ),
               ],
             ),
+          const CommonAppBarActions(),
         ],
       ),
       body: notifications.isEmpty

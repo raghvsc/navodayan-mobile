@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../services/coordinator_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/coordinator_contributions_view.dart';
+import '../widgets/app_bar_actions.dart';
 
 class CoordinatorDashboardScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -530,6 +531,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
             tooltip: 'Refresh',
             onPressed: _loadAll,
           ),
+          const CommonAppBarActions(),
         ],
         bottom: TabBar(
           controller: _tabController,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_bar_actions.dart';
 
 class HomeScreen extends StatelessWidget {
   final ValueChanged<int>? onNavigateTab;
@@ -59,147 +60,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (auth.isAuthenticated)
-                        PopupMenuButton<String>(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          color: colors.surface,
-                          icon: CircleAvatar(
-                            radius: 18,
-                            backgroundColor: colors.primary,
-                            child: Text(
-                              (auth.user?.profile?.fullName?.isNotEmpty == true)
-                                  ? auth.user!.profile!.fullName![0].toUpperCase()
-                                  : (auth.user?.email.isNotEmpty == true)
-                                      ? auth.user!.email[0].toUpperCase()
-                                      : 'U',
-                              style: TextStyle(
-                                color: isDark ? const Color(0xFF0B1120) : Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          itemBuilder: (ctx) {
-                            final fullName = auth.user?.profile?.fullName?.trim();
-                            final displayName = (fullName != null && fullName.isNotEmpty)
-                                ? fullName
-                                : (auth.user?.email ?? 'Navodayan Member');
-
-                            return [
-                              PopupMenuItem(
-                                enabled: false,
-                                child: Text(
-                                  displayName,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: colors.textPrimary,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                              const PopupMenuDivider(),
-                              PopupMenuItem(
-                                value: 'profile',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.person_outline_rounded, size: 18, color: colors.textSecondary),
-                                    const SizedBox(width: 8),
-                                    Text('Profile', style: TextStyle(color: colors.textPrimary)),
-                                  ],
-                                ),
-                              ),
-                              PopupMenuItem(
-                                value: 'connections',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.people_outline_rounded, size: 18, color: colors.textSecondary),
-                                    const SizedBox(width: 8),
-                                    Text('My Connections', style: TextStyle(color: colors.textPrimary)),
-                                  ],
-                                ),
-                              ),
-                              PopupMenuItem(
-                                value: 'contributions',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.volunteer_activism_outlined, size: 18, color: colors.textSecondary),
-                                    const SizedBox(width: 8),
-                                    Text('Contributions', style: TextStyle(color: colors.textPrimary)),
-                                  ],
-                                ),
-                              ),
-                              if (auth.user?.isCoordinator == true || auth.user?.isAdmin == true)
-                                PopupMenuItem(
-                                  value: 'coordinator',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.admin_panel_settings_outlined, size: 18, color: colors.primary),
-                                      const SizedBox(width: 8),
-                                      Text('Coordinator Portal', style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
-                                ),
-                              PopupMenuItem(
-                                value: 'chat_requests',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.mark_chat_unread_outlined, size: 18, color: colors.textSecondary),
-                                    const SizedBox(width: 8),
-                                    Text('Chat Requests', style: TextStyle(color: colors.textPrimary)),
-                                  ],
-                                ),
-                              ),
-                              const PopupMenuDivider(),
-                              PopupMenuItem(
-                                value: 'logout',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.logout_rounded, color: colors.error, size: 18),
-                                    const SizedBox(width: 8),
-                                    Text('Logout', style: TextStyle(color: colors.error)),
-                                  ],
-                                ),
-                              ),
-                            ];
-                          },
-                          onSelected: (val) {
-                            if (val == 'logout') {
-                              auth.logout();
-                            } else if (val == 'profile') {
-                              Navigator.pushNamed(context, '/profile');
-                            } else if (val == 'connections') {
-                              Navigator.pushNamed(context, '/connections');
-                            } else if (val == 'contributions') {
-                              Navigator.pushNamed(context, '/contributions');
-                            } else if (val == 'coordinator') {
-                              Navigator.pushNamed(context, '/coordinator');
-                            } else if (val == 'chat_requests') {
-                              Navigator.pushNamed(context, '/chats', arguments: 1);
-                            }
-                          },
-                        )
-                      else
-                        Row(
-                          children: [
-                            TextButton(
-                              onPressed: () => Navigator.pushNamed(context, '/login'),
-                              child: Text('Login', style: TextStyle(fontWeight: FontWeight.bold, color: colors.primary)),
-                            ),
-                            const SizedBox(width: 6),
-                            ElevatedButton(
-                              onPressed: () => Navigator.pushNamed(context, '/register'),
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              ),
-                              child: const Text('Join', style: TextStyle(fontSize: 13)),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
+                  const CommonAppBarActions(),
                 ],
               ),
               const SizedBox(height: 20),

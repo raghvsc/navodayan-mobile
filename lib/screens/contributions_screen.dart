@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../services/contributions_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/coordinator_contributions_view.dart';
+import '../widgets/app_bar_actions.dart';
 
 class ContributionsScreen extends StatefulWidget {
   const ContributionsScreen({super.key});
@@ -565,6 +566,7 @@ class _ContributionsScreenState extends State<ContributionsScreen> with SingleTi
               _loadMemberData();
             },
           ),
+          const CommonAppBarActions(),
         ],
         bottom: TabBar(
           controller: _tabController,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/connection.dart';
 import '../services/connections_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_bar_actions.dart';
 import 'profile_screen.dart';
 
 class ConnectionsScreen extends StatefulWidget {
@@ -88,6 +89,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> with SingleTicker
             icon: const Icon(Icons.refresh_rounded),
             onPressed: _loadData,
           ),
+          const CommonAppBarActions(),
         ],
         bottom: TabBar(
           controller: _tabController,

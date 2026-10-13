@@ -12,6 +12,7 @@ import 'package:navodayan/screens/home_screen.dart';
 import 'package:navodayan/screens/notifications_screen.dart';
 import 'package:navodayan/screens/profile_screen.dart';
 import 'package:navodayan/theme/app_theme.dart';
+import 'package:navodayan/widgets/app_bar_actions.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -212,6 +213,56 @@ void main() {
       expect(find.text('1-on-1 Video Call'), findsOneWidget);
       expect(find.text('with Alok Singh'), findsOneWidget);
       expect(find.text('Start Call'), findsOneWidget);
+    });
+  });
+
+  group('Global AppBar Actions Tests', () {
+    testWidgets('NotificationBellButton and UserProfileMenuButton render on HomeScreen', (WidgetTester tester) async {
+      await tester.pumpWidget(createTestWidget(const HomeScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NotificationBellButton), findsOneWidget);
+      expect(find.byType(UserProfileMenuButton), findsOneWidget);
+      expect(find.byIcon(Icons.notifications_outlined), findsOneWidget);
+    });
+
+    testWidgets('NotificationBellButton displays unread badge count', (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({
+        'navodayan_notifications': jsonEncode(List.generate(
+          5,
+          (i) => {
+            'id': 'n_$i',
+            'title': 'Test $i',
+            'body': 'Body $i',
+            'type': 'general',
+            'createdAt': DateTime.now().toIso8601String(),
+            'isRead': false,
+          },
+        )),
+      });
+
+      final notifProvider = NotificationProvider();
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
+            ChangeNotifierProvider<NotificationProvider>.value(value: notifProvider),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: AppBar(
+                actions: const [
+                  NotificationBellButton(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('5'), findsOneWidget);
     });
   });
 }

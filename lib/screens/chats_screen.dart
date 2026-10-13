@@ -5,6 +5,7 @@ import '../models/chat_models.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_bar_actions.dart';
 import 'chat_detail_screen.dart';
 
 class ChatsScreen extends StatefulWidget {
@@ -59,7 +60,12 @@ class _ChatsScreenState extends State<ChatsScreen> with SingleTickerProviderStat
     if (!auth.isAuthenticated) {
       return Scaffold(
         backgroundColor: colors.background,
-        appBar: AppBar(title: const Text('Messages')),
+        appBar: AppBar(
+          title: const Text('Messages'),
+          actions: const [
+            CommonAppBarActions(),
+          ],
+        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
@@ -98,6 +104,9 @@ class _ChatsScreenState extends State<ChatsScreen> with SingleTickerProviderStat
       backgroundColor: colors.background,
       appBar: AppBar(
         title: const Text('Member Chats'),
+        actions: const [
+          CommonAppBarActions(),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: colors.primary,

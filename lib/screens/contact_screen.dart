@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/contact_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_bar_actions.dart';
 
 class ContactScreen extends StatefulWidget {
   const ContactScreen({super.key});
@@ -83,6 +84,9 @@ class _ContactScreenState extends State<ContactScreen> {
       backgroundColor: colors.background,
       appBar: AppBar(
         title: const Text('Contact Us'),
+        actions: const [
+          CommonAppBarActions(),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),

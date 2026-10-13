@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../services/profile_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_bar_actions.dart';
 import 'chat_detail_screen.dart';
 import 'edit_profile_dialog.dart';
 import 'mentorship_screen.dart';
@@ -121,7 +122,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_loading && _profile == null) {
       return Scaffold(
         backgroundColor: colors.background,
-        appBar: AppBar(title: const Text('User Profile')),
+        appBar: AppBar(
+          title: const Text('User Profile'),
+          actions: const [CommonAppBarActions()],
+        ),
         body: Center(
           child: CircularProgressIndicator(color: colors.primary),
         ),
@@ -131,7 +135,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_errorMessage != null && _profile == null) {
       return Scaffold(
         backgroundColor: colors.background,
-        appBar: AppBar(title: const Text('User Profile')),
+        appBar: AppBar(
+          title: const Text('User Profile'),
+          actions: const [CommonAppBarActions()],
+        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
@@ -337,6 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   },
                 ),
+              const CommonAppBarActions(),
             ],
           ),
           SliverToBoxAdapter(

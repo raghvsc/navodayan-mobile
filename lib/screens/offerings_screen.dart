@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/offering.dart';
 import '../services/offerings_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_bar_actions.dart';
 
 class OfferingsScreen extends StatefulWidget {
   const OfferingsScreen({super.key});
@@ -86,7 +87,6 @@ class _OfferingsScreenState extends State<OfferingsScreen> {
     final nameController = TextEditingController();
     final summaryController = TextEditingController();
     final websiteController = TextEditingController();
-    final phoneController = TextEditingController();
     final cityController = TextEditingController();
     String selectedCat = 'SERVICE';
     bool hiring = false;
@@ -304,6 +304,7 @@ class _OfferingsScreenState extends State<OfferingsScreen> {
             icon: const Icon(Icons.refresh_rounded),
             onPressed: _loadData,
           ),
+          const CommonAppBarActions(),
         ],
       ),
       body: Column(

@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
 import '../services/schools_batches_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_bar_actions.dart';
 import 'profile_screen.dart';
 import 'send_chat_request_dialog.dart';
 
@@ -219,6 +220,7 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => _fetchDirectory(page: 1),
           ),
+          const CommonAppBarActions(),
         ],
       ),
       body: Column(

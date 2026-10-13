@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_bar_actions.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -13,6 +14,9 @@ class AboutScreen extends StatelessWidget {
       backgroundColor: colors.background,
       appBar: AppBar(
         title: const Text('About Us'),
+        actions: const [
+          CommonAppBarActions(),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),

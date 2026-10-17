@@ -84,10 +84,11 @@ class _SendChatRequestDialogState extends State<SendChatRequestDialog> {
       backgroundColor: colors.surface,
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             Row(
               children: [
                 CircleAvatar(
@@ -194,6 +195,7 @@ class _SendChatRequestDialogState extends State<SendChatRequestDialog> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

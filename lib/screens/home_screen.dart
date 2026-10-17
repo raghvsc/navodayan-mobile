@@ -445,27 +445,33 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: colors.secondary.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
+            Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: colors.secondary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.auto_awesome_rounded, color: colors.secondary, size: 16),
                   ),
-                  child: Icon(Icons.auto_awesome_rounded, color: colors.secondary, size: 16),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Navodayans in the spotlight',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: colors.textPrimary,
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'Navodayans in the spotlight',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: colors.textPrimary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+            const SizedBox(width: 8),
             InkWell(
               onTap: () {
                 if (widget.onNavigateTab != null) {
@@ -477,7 +483,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 child: Text(
-                  'See Directory',
+                  'See all',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,

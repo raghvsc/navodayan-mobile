@@ -158,8 +158,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                     value: selectedType,
                     items: const [
                       DropdownMenuItem(value: 'ISSUE', child: Text('Bug or System Issue')),
-                      DropdownMenuItem(value: 'FEATURE', child: Text('Feature Request')),
-                      DropdownMenuItem(value: 'GENERAL', child: Text('General Feedback')),
+                      DropdownMenuItem(value: 'ENHANCEMENT', child: Text('Feature or Enhancement Request')),
                     ],
                     onChanged: (val) {
                       if (val != null) setModalState(() => selectedType = val);
@@ -518,6 +517,44 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     final auth = context.watch<AuthProvider>();
+
+    if (!auth.isAuthenticated || auth.user?.isCoordinator != true) {
+      return Scaffold(
+        backgroundColor: colors.background,
+        appBar: AppBar(
+          title: const Text('Coordinator Dashboard'),
+          actions: const [CommonAppBarActions()],
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.lock_outline_rounded, size: 64, color: colors.textSecondary),
+                const SizedBox(height: 16),
+                Text(
+                  'Access Restricted',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colors.textPrimary),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Coordinator role is required to access the Coordinator Dashboard.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: colors.textSecondary),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Go Back'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final viewing = _context?.viewing;
     final scopeLabel = viewing?.scopeLabel ?? viewing?.jnvName ?? 'JNV Coordinator Scope';
 

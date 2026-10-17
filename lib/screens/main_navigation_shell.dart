@@ -361,7 +361,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 },
               ),
             ],
-            if (auth.isAuthenticated && (auth.user?.isCoordinator == true || auth.user?.isAdmin == true)) ...[
+            if (auth.isAuthenticated && auth.user?.isCoordinator == true) ...[
               const SizedBox(height: 20),
               Text(
                 'COORDINATOR PORTAL',

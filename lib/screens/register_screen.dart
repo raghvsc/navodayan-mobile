@@ -27,7 +27,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   School? _selectedSchool;
   Batch? _selectedBatch;
-  bool _openToMentor = false;
   bool _obscurePassword = true;
   bool _loading = false;
   bool _registrationSuccess = false;
@@ -112,7 +111,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'password': _passwordController.text,
         'jnvSchool': _selectedSchool!.jnvId,
         'batchId': _selectedBatch!.id,
-        'openToMentor': _openToMentor,
+        'openToMentor': false,
       });
 
       if (mounted) {
@@ -388,25 +387,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 }).toList(),
                 onChanged: (val) => setState(() => _selectedBatch = val),
                 hint: Text(_loadingMeta ? 'Loading batches...' : 'Select batch year'),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colors.border),
-                ),
-                child: SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    'I am open to mentoring other Navodayans',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.textPrimary),
-                  ),
-                  value: _openToMentor,
-                  onChanged: (val) => setState(() => _openToMentor = val),
-                  activeThumbColor: colors.primary,
-                ),
               ),
               const SizedBox(height: 24),
               ElevatedButton(

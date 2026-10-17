@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:navodayan/models/connection.dart';
@@ -227,9 +228,29 @@ void main() {
       expect(fb.status, 'IN_PROGRESS');
     });
 
-    testWidgets('Renders CoordinatorDashboardScreen tabs and feedback action', (WidgetTester tester) async {
+    testWidgets('Shows Access Restricted when user is not a coordinator', (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({});
       await tester.pumpWidget(createTestWidget(const CoordinatorDashboardScreen()));
-      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Access Restricted'), findsOneWidget);
+      expect(find.text('Go Back'), findsOneWidget);
+    });
+
+    testWidgets('Renders CoordinatorDashboardScreen tabs and feedback action when user is a coordinator', (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({
+        AuthProvider.tokenKey: 'test_token',
+        AuthProvider.userKey: jsonEncode({
+          'id': 'coord-user-1',
+          'email': 'coord@navodaya.org',
+          'role': 'COORDINATOR',
+          'approvalStatus': 'APPROVED',
+          'profile': {'fullName': 'Coordinator User'}
+        }),
+      });
+
+      await tester.pumpWidget(createTestWidget(const CoordinatorDashboardScreen()));
+      await tester.pumpAndSettle();
 
       expect(find.text('Coordinator Dashboard'), findsOneWidget);
       expect(find.text('Submit Feedback'), findsOneWidget);

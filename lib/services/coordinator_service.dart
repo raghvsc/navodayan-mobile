@@ -275,12 +275,17 @@ class CoordinatorService {
     required String description,
   }) async {
     try {
+      final upper = type.toUpperCase().trim();
+      final normalizedType = (upper == 'FEATURE' || upper == 'GENERAL' || upper == 'ENHANCEMENT')
+          ? 'ENHANCEMENT'
+          : 'ISSUE';
+
       await _client.post(
         '/coordinator/feedback',
         {
-          'type': type,
-          'title': title,
-          'description': description,
+          'type': normalizedType,
+          'title': title.trim(),
+          'description': description.trim(),
         },
       );
       return true;

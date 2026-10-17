@@ -167,7 +167,7 @@ class UserProfileMenuButton extends StatelessWidget {
               ],
             ),
           ),
-          if (user?.isCoordinator == true || user?.isAdmin == true)
+          if (user?.isCoordinator == true)
             PopupMenuItem(
               value: 'coordinator',
               child: Row(

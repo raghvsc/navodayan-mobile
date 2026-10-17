@@ -333,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                if (auth.isAuthenticated && (auth.user?.isCoordinator == true || auth.user?.isAdmin == true)) ...[
+                if (auth.isAuthenticated && auth.user?.isCoordinator == true) ...[
                   const SizedBox(height: 14),
                   _buildFeatureCard(
                     context,

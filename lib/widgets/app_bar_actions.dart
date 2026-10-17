@@ -183,6 +183,16 @@ class UserProfileMenuButton extends StatelessWidget {
               ],
             ),
           ),
+          PopupMenuItem(
+            value: 'settings',
+            child: Row(
+              children: [
+                Icon(Icons.settings_outlined, size: 18, color: colors.textSecondary),
+                const SizedBox(width: 8),
+                Text('Settings & Theme', style: TextStyle(color: colors.textPrimary)),
+              ],
+            ),
+          ),
           const PopupMenuDivider(),
           PopupMenuItem(
             value: 'logout',
@@ -209,6 +219,8 @@ class UserProfileMenuButton extends StatelessWidget {
           Navigator.pushNamed(context, '/coordinator');
         } else if (val == 'chat_requests') {
           Navigator.pushNamed(context, '/chats', arguments: 1);
+        } else if (val == 'settings') {
+          Navigator.pushNamed(context, '/settings');
         }
       },
     );

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/chat_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/about_screen.dart';
 import 'screens/chats_screen.dart';
 import 'screens/connections_screen.dart';
@@ -23,6 +24,7 @@ import 'screens/notifications_screen.dart';
 import 'screens/offerings_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/register_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/analytics_service.dart';
 import 'theme/app_theme.dart';
@@ -57,6 +59,7 @@ class NavodayanApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProxyProvider2<AuthProvider, NotificationProvider, ChatProvider>(
@@ -69,36 +72,41 @@ class NavodayanApp extends StatelessWidget {
           },
         ),
       ],
-      child: MaterialApp(
-        title: 'Navodayan Community',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        navigatorObservers: [
-          AnalyticsService.instance.observer,
-        ],
-        initialRoute: '/splash',
-        routes: {
-          '/splash': (context) => const SplashScreen(),
-          '/': (context) => const MainNavigationShell(),
-          '/login': (context) => const LoginScreen(),
-          '/register': (context) => const RegisterScreen(),
-          '/join': (context) => const RegisterScreen(),
-          '/forgot-password': (context) => const ForgotPasswordScreen(),
-          '/directory': (context) => const DirectoryScreen(),
-          '/mentorship': (context) => const MentorshipScreen(),
-          '/events': (context) => const EventsScreen(),
-          '/about': (context) => const AboutScreen(),
-          '/contact': (context) => const ContactScreen(),
-          '/profile': (context) => const ProfileScreen(),
-          '/chats': (context) => const ChatsScreen(),
-          '/notifications': (context) => const NotificationsScreen(),
-          '/meeting': (context) => const MeetingScreen(),
-          '/contributions': (context) => const ContributionsScreen(),
-          '/offerings': (context) => const OfferingsScreen(),
-          '/connections': (context) => const ConnectionsScreen(),
-          '/coordinator': (context) => const CoordinatorDashboardScreen(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: 'Navodayan Community',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            navigatorObservers: [
+              AnalyticsService.instance.observer,
+            ],
+            initialRoute: '/splash',
+            routes: {
+              '/splash': (context) => const SplashScreen(),
+              '/': (context) => const MainNavigationShell(),
+              '/login': (context) => const LoginScreen(),
+              '/register': (context) => const RegisterScreen(),
+              '/join': (context) => const RegisterScreen(),
+              '/forgot-password': (context) => const ForgotPasswordScreen(),
+              '/directory': (context) => const DirectoryScreen(),
+              '/mentorship': (context) => const MentorshipScreen(),
+              '/events': (context) => const EventsScreen(),
+              '/about': (context) => const AboutScreen(),
+              '/contact': (context) => const ContactScreen(),
+              '/settings': (context) => const SettingsScreen(),
+              '/profile': (context) => const ProfileScreen(),
+              '/chats': (context) => const ChatsScreen(),
+              '/notifications': (context) => const NotificationsScreen(),
+              '/meeting': (context) => const MeetingScreen(),
+              '/contributions': (context) => const ContributionsScreen(),
+              '/offerings': (context) => const OfferingsScreen(),
+              '/connections': (context) => const ConnectionsScreen(),
+              '/coordinator': (context) => const CoordinatorDashboardScreen(),
+            },
+          );
         },
       ),
     );

@@ -6,11 +6,13 @@ import 'package:navodayan/models/school.dart';
 import 'package:navodayan/providers/auth_provider.dart';
 import 'package:navodayan/providers/chat_provider.dart';
 import 'package:navodayan/providers/notification_provider.dart';
+import 'package:navodayan/providers/theme_provider.dart';
 import 'package:navodayan/screens/chats_screen.dart';
 import 'package:navodayan/screens/chat_detail_screen.dart';
 import 'package:navodayan/screens/home_screen.dart';
 import 'package:navodayan/screens/notifications_screen.dart';
 import 'package:navodayan/screens/profile_screen.dart';
+import 'package:navodayan/screens/settings_screen.dart';
 import 'package:navodayan/theme/app_theme.dart';
 import 'package:navodayan/widgets/app_bar_actions.dart';
 import 'package:provider/provider.dart';
@@ -21,11 +23,14 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  Widget createTestWidget(Widget child) {
+  Widget createTestWidget(Widget child, {ThemeProvider? themeProvider}) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider<ThemeProvider>.value(
+          value: themeProvider ?? ThemeProvider(),
+        ),
         ChangeNotifierProxyProvider2<AuthProvider, NotificationProvider, ChatProvider>(
           create: (_) => ChatProvider(),
           update: (_, authProvider, notifProvider, chatProvider) {
@@ -263,6 +268,72 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('5'), findsOneWidget);
+    });
+  });
+
+  group('Theme & Settings Tests', () {
+    test('ThemeProvider defaults to system mode and persists change', () async {
+      SharedPreferences.setMockInitialValues({});
+      final themeProvider = ThemeProvider();
+      await themeProvider.loadFromPrefs();
+
+      expect(themeProvider.themeMode, ThemeMode.system);
+      expect(themeProvider.themeModeName, 'system');
+
+      await themeProvider.setThemeMode(ThemeMode.dark);
+      expect(themeProvider.themeMode, ThemeMode.dark);
+      expect(themeProvider.themeModeName, 'dark');
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('app_theme_mode'), 'dark');
+
+      await themeProvider.setThemeMode(ThemeMode.light);
+      expect(themeProvider.themeMode, ThemeMode.light);
+      expect(themeProvider.themeModeName, 'light');
+      expect(prefs.getString('app_theme_mode'), 'light');
+    });
+
+    testWidgets('SettingsScreen renders Light, Dark, System options with System as default', (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final themeProvider = ThemeProvider();
+      await themeProvider.loadFromPrefs();
+
+      await tester.pumpWidget(
+        createTestWidget(
+          const SettingsScreen(),
+          themeProvider: themeProvider,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Settings'), findsOneWidget);
+      expect(find.text('System Default'), findsOneWidget);
+      expect(find.text('Light Mode'), findsOneWidget);
+      expect(find.text('Dark Mode'), findsOneWidget);
+
+      // Verify System Default is initially selected
+      expect(themeProvider.themeMode, ThemeMode.system);
+
+      // Tap Dark Mode
+      await tester.tap(find.text('Dark Mode'));
+      await tester.pumpAndSettle();
+
+      expect(themeProvider.themeMode, ThemeMode.dark);
+    });
+  });
+
+  group('HomeScreen Stats & Spotlight Tests', () {
+    testWidgets('HomeScreen renders Community stats and Spotlight section', (WidgetTester tester) async {
+      await tester.pumpWidget(createTestWidget(const HomeScreen()));
+      await tester.pumpAndSettle();
+
+      // Check stats cards
+      expect(find.text('Navodayans'), findsOneWidget);
+      expect(find.text('JNV Schools'), findsOneWidget);
+      expect(find.text('Countries'), findsOneWidget);
+
+      // Check spotlight title
+      expect(find.text('Navodayans in the spotlight'), findsOneWidget);
     });
   });
 }

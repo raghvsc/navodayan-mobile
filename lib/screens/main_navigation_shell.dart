@@ -407,6 +407,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             ),
             const SizedBox(height: 10),
             _buildMenuTile(
+              icon: Icons.settings_outlined,
+              title: 'Settings',
+              subtitle: 'Theme (Light, Dark, System) and preferences',
+              onTap: () => Navigator.pushNamed(context, '/settings'),
+            ),
+            const SizedBox(height: 10),
+            _buildMenuTile(
               icon: Icons.share_rounded,
               title: 'Share Navodayan App',
               subtitle: 'Invite alumni and batchmates to join',

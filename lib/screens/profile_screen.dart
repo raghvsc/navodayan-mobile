@@ -46,6 +46,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     // Check if self
     final isViewingSelf = widget.isSelf ||
+        widget.profileId == null ||
+        widget.profileId == 'me' ||
         (auth.user?.profile?.id != null && auth.user!.profile!.id == widget.profileId);
 
     if (widget.initialProfile != null && !isViewingSelf) {
@@ -215,14 +217,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: CircleAvatar(
                               radius: 35,
                               backgroundColor: colors.surface,
-                              child: Text(
-                                initials,
-                                style: TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: colors.primary,
-                                ),
-                              ),
+                              backgroundImage: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
+                                  ? NetworkImage(p.imageUrl!)
+                                  : null,
+                              child: (p.imageUrl == null || p.imageUrl!.isEmpty)
+                                  ? Text(
+                                      initials,
+                                      style: TextStyle(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: colors.primary,
+                                      ),
+                                    )
+                                  : null,
                             ),
                           ),
                           const SizedBox(width: 16),

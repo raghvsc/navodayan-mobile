@@ -1,9 +1,12 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../models/profile.dart';
 import '../providers/auth_provider.dart';
 import '../services/profile_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/image_crop_dialog.dart';
 
 class EditProfileDialog extends StatefulWidget {
   final Profile currentProfile;
@@ -21,6 +24,7 @@ class EditProfileDialog extends StatefulWidget {
 
 class _EditProfileDialogState extends State<EditProfileDialog> {
   final ProfileService _profileService = ProfileService();
+  final ImagePicker _picker = ImagePicker();
 
   late TextEditingController _roleController;
   late TextEditingController _companyController;
@@ -32,6 +36,10 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
   late TextEditingController _skillsController;
   late bool _openToMentor;
 
+  Uint8List? _selectedImageBytes;
+  String? _uploadedImageUrl;
+  bool _uploadingPhoto = false;
+
   bool _saving = false;
   String? _errorMessage;
 
@@ -39,6 +47,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
   void initState() {
     super.initState();
     final p = widget.currentProfile;
+    _uploadedImageUrl = p.imageUrl;
     _roleController = TextEditingController(text: p.currentRole ?? '');
     _companyController = TextEditingController(text: p.company ?? '');
     _locationController = TextEditingController(text: p.location ?? '');
@@ -48,6 +57,124 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     _bioController = TextEditingController(text: p.bio ?? '');
     _skillsController = TextEditingController(text: p.skills.map((s) => s.name).join(', '));
     _openToMentor = p.openToMentor;
+  }
+
+  Future<void> _pickAndCropImage(ImageSource source) async {
+    try {
+      final XFile? file = await _picker.pickImage(
+        source: source,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 85,
+      );
+
+      if (file == null) return;
+      final bytes = await file.readAsBytes();
+
+      if (!mounted) return;
+      // Show interactive cropping preview dialog
+      final cropped = await ImageCropDialog.show(context, bytes);
+      if (cropped == null) return;
+
+      setState(() {
+        _selectedImageBytes = cropped;
+        _uploadingPhoto = true;
+      });
+
+      if (!mounted) return;
+      final auth = context.read<AuthProvider>();
+      if (auth.token != null) {
+        final newUrl = await _profileService.uploadProfilePhoto(cropped, token: auth.token!);
+        if (mounted) {
+          final successColor = AppColors.of(context).success;
+          setState(() {
+            _uploadedImageUrl = newUrl;
+            _uploadingPhoto = false;
+          });
+          await auth.fetchCurrentUser();
+          widget.onSaved();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Profile photo updated successfully! (<= 10 KB)'),
+                backgroundColor: successColor,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _uploadingPhoto = false;
+          _errorMessage = 'Failed to upload photo: $e';
+        });
+      }
+    }
+  }
+
+  void _showImageSourceSheet() {
+    final colors = AppColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Change Profile Picture',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: colors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.camera_alt_rounded, color: colors.primary),
+                  ),
+                  title: Text('Take Photo', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                  subtitle: Text('Capture new photo with Camera', style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickAndCropImage(ImageSource.camera);
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: colors.secondary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.photo_library_rounded, color: colors.secondary),
+                  ),
+                  title: Text('Choose from Gallery', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                  subtitle: Text('Pick an existing photo from Gallery', style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickAndCropImage(ImageSource.gallery);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -168,6 +295,87 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Profile Photo section
+                    Center(
+                      child: Column(
+                        children: [
+                          Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              GestureDetector(
+                                onTap: _uploadingPhoto ? null : _showImageSourceSheet,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: colors.primary, width: 2.5),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: colors.primary.withValues(alpha: 0.2),
+                                        blurRadius: 10,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: CircleAvatar(
+                                    radius: 44,
+                                    backgroundColor: colors.primary.withValues(alpha: 0.15),
+                                    backgroundImage: _selectedImageBytes != null
+                                        ? MemoryImage(_selectedImageBytes!)
+                                        : (_uploadedImageUrl != null && _uploadedImageUrl!.isNotEmpty)
+                                            ? NetworkImage(_uploadedImageUrl!) as ImageProvider
+                                            : null,
+                                    child: (_selectedImageBytes == null && (_uploadedImageUrl == null || _uploadedImageUrl!.isEmpty))
+                                        ? Text(
+                                            widget.currentProfile.fullName.isNotEmpty
+                                                ? widget.currentProfile.fullName[0].toUpperCase()
+                                                : 'N',
+                                            style: TextStyle(
+                                              fontSize: 32,
+                                              fontWeight: FontWeight.bold,
+                                              color: colors.primary,
+                                            ),
+                                          )
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  onTap: _uploadingPhoto ? null : _showImageSourceSheet,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(7),
+                                    decoration: BoxDecoration(
+                                      color: colors.primary,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: colors.surface, width: 2),
+                                    ),
+                                    child: _uploadingPhoto
+                                        ? const SizedBox(
+                                            width: 14,
+                                            height: 14,
+                                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                          )
+                                        : const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: _uploadingPhoto ? null : _showImageSourceSheet,
+                            icon: const Icon(Icons.photo_camera_rounded, size: 16),
+                            label: Text(
+                              _uploadingPhoto ? 'Optimizing & Uploading (max 10 KB)...' : 'Change Profile Picture',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     _buildTextField('Current Role / Job Title', _roleController, 'e.g. Software Engineer', colors),
                     const SizedBox(height: 12),
                     _buildTextField('Company / Organization', _companyController, 'e.g. Google, TCS, Startup', colors),

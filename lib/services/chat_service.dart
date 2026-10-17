@@ -127,7 +127,12 @@ class ChatService {
         'status': request.status.name,
         'createdAt': FieldValue.serverTimestamp(),
         'participants': [request.senderId, request.receiverId],
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)).timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          debugPrint('Firestore sendChatRequest timed out, proceeding optimistically');
+        },
+      );
     } catch (e) {
       debugPrint('Error sending chat request to Firestore: $e');
     }
@@ -141,7 +146,12 @@ class ChatService {
       await firestore.collection('chat_requests').doc(requestId).update({
         'status': status.name,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }).timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          debugPrint('Firestore updateChatRequestStatus timed out');
+        },
+      );
     } catch (e) {
       debugPrint('Error updating request status: $e');
     }
@@ -181,7 +191,12 @@ class ChatService {
         'lastMessage': lastMessage,
         'lastMessageTime': FieldValue.serverTimestamp(),
         'lastSenderId': userAId,
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true)).timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          debugPrint('Firestore createOrUpdateConversation timed out');
+        },
+      );
     } catch (e) {
       debugPrint('Error creating/updating conversation in Firestore: $e');
     }
@@ -218,7 +233,12 @@ class ChatService {
         'unreadCounts.${message.receiverId}': FieldValue.increment(1),
       }, SetOptions(merge: true));
 
-      await batch.commit();
+      await batch.commit().timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          debugPrint('Firestore sendMessage batch commit timed out');
+        },
+      );
     } catch (e) {
       debugPrint('Error sending message to Firestore: $e');
     }
@@ -231,7 +251,12 @@ class ChatService {
     try {
       await firestore.collection('conversations').doc(conversationId).update({
         'unreadCounts.$currentUserId': 0,
-      });
+      }).timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          debugPrint('Firestore markConversationRead timed out');
+        },
+      );
     } catch (e) {
       debugPrint('Error marking conversation read in Firestore: $e');
     }

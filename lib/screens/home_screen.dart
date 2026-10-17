@@ -590,14 +590,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 CircleAvatar(
                   radius: 17,
                   backgroundColor: colors.primary,
-                  child: Text(
-                    initial,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  backgroundImage: (member.imageUrl != null && member.imageUrl!.isNotEmpty)
+                      ? NetworkImage(member.imageUrl!)
+                      : null,
+                  child: (member.imageUrl == null || member.imageUrl!.isEmpty)
+                      ? Text(
+                          initial,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 10),
                 Expanded(

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../models/chat_models.dart';
 import '../models/notification_item.dart';
+import '../providers/chat_provider.dart';
 import '../providers/notification_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_bar_actions.dart';
+import 'chat_detail_screen.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -233,6 +236,10 @@ class NotificationsScreen extends StatelessWidget {
                                       color: colors.textSecondary.withValues(alpha: 0.7),
                                     ),
                                   ),
+                                  if (item.type == NotificationType.chatRequest && item.data?['isOutgoing'] != true) ...[
+                                    const SizedBox(height: 10),
+                                    _buildChatRequestActions(context, item, colors),
+                                  ],
                                 ],
                               ),
                             ),
@@ -244,6 +251,129 @@ class NotificationsScreen extends StatelessWidget {
                 );
               },
             ),
+    );
+  }
+
+  Widget _buildChatRequestActions(BuildContext context, NotificationItem item, ThemePalette colors) {
+    final chatProvider = context.watch<ChatProvider>();
+    final notifProvider = context.read<NotificationProvider>();
+    final requestId = item.data?['requestId']?.toString();
+
+    // Check if we have a matching request in ChatProvider
+    ChatRequest? matchingReq;
+    if (requestId != null && requestId.isNotEmpty) {
+      try {
+        matchingReq = chatProvider.requests.firstWhere((r) => r.id == requestId);
+      } catch (_) {
+        matchingReq = null;
+      }
+    }
+
+    final isAccepted = matchingReq?.status == ChatRequestStatus.accepted;
+    final isDeclined = matchingReq?.status == ChatRequestStatus.declined;
+
+    if (isAccepted) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: colors.success.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_outline_rounded, size: 14, color: colors.success),
+            const SizedBox(width: 4),
+            Text(
+              'Accepted • Tap to Chat',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: colors.success),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (isDeclined) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: colors.error.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'Request Declined',
+          style: TextStyle(fontSize: 12, color: colors.error),
+        ),
+      );
+    }
+
+    // Pending: Show Accept & Reject buttons
+    return Row(
+      children: [
+        ElevatedButton.icon(
+          icon: const Icon(Icons.check_rounded, size: 16),
+          label: const Text('Accept'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: colors.success,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          onPressed: () async {
+            if (requestId == null) return;
+            final conv = await chatProvider.acceptChatRequest(requestId);
+            await notifProvider.markAsRead(item.id);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Chat request accepted! You can now start the conversation.'),
+                  backgroundColor: colors.success,
+                ),
+              );
+              if (conv != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChatDetailScreen(
+                      conversationId: conv.id,
+                      participantId: conv.participantId,
+                      participantName: conv.participantName,
+                      participantRole: conv.participantRole,
+                      participantCompany: conv.participantCompany,
+                    ),
+                  ),
+                );
+              }
+            }
+          },
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          icon: const Icon(Icons.close_rounded, size: 16),
+          label: const Text('Reject'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: colors.error,
+            side: BorderSide(color: colors.error.withValues(alpha: 0.5)),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          onPressed: () async {
+            if (requestId == null) return;
+            await chatProvider.declineChatRequest(requestId);
+            await notifProvider.markAsRead(item.id);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Chat request declined')),
+              );
+            }
+          },
+        ),
+      ],
     );
   }
 

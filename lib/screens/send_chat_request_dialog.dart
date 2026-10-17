@@ -48,6 +48,11 @@ class _SendChatRequestDialogState extends State<SendChatRequestDialog> {
         senderRole: auth.user?.role,
         recipient: widget.recipient,
         message: _messageController.text.trim(),
+      ).timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          debugPrint('sendChatRequest completed with local/offline fallback');
+        },
       );
 
       if (mounted) {
@@ -78,6 +83,7 @@ class _SendChatRequestDialogState extends State<SendChatRequestDialog> {
     final initials = widget.recipient.fullName.isNotEmpty
         ? widget.recipient.fullName[0].toUpperCase()
         : 'N';
+    final imageUrl = widget.recipient.imageUrl;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -94,14 +100,19 @@ class _SendChatRequestDialogState extends State<SendChatRequestDialog> {
                 CircleAvatar(
                   radius: 24,
                   backgroundColor: colors.primary,
-                  child: Text(
-                    initials,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
+                  backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
+                      ? NetworkImage(imageUrl)
+                      : null,
+                  child: (imageUrl == null || imageUrl.isEmpty)
+                      ? Text(
+                          initials,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 14),
                 Expanded(

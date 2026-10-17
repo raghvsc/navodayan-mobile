@@ -1,6 +1,10 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
+import 'package:navodayan/models/chat_models.dart';
+import 'package:navodayan/models/notification_item.dart';
 import 'package:navodayan/models/profile.dart';
 import 'package:navodayan/models/school.dart';
 import 'package:navodayan/providers/auth_provider.dart';
@@ -14,6 +18,7 @@ import 'package:navodayan/screens/notifications_screen.dart';
 import 'package:navodayan/screens/profile_screen.dart';
 import 'package:navodayan/screens/settings_screen.dart';
 import 'package:navodayan/theme/app_theme.dart';
+import 'package:navodayan/utils/image_compressor.dart';
 import 'package:navodayan/widgets/app_bar_actions.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -334,6 +339,113 @@ void main() {
 
       // Check spotlight title
       expect(find.text('Navodayans in the spotlight'), findsOneWidget);
+    });
+  });
+
+  group('Profile Picture & ImageCompressor Tests', () {
+    test('ImageCompressor strictly compresses large images to <= 10 KB (10240 bytes)', () {
+      // Create a 600x600 image with complex color patterns
+      final testImage = img.Image(width: 600, height: 600);
+      for (int y = 0; y < 600; y++) {
+        for (int x = 0; x < 600; x++) {
+          testImage.setPixelRgb(x, y, (x * 255 ~/ 600), (y * 255 ~/ 600), ((x + y) * 255 ~/ 1200));
+        }
+      }
+      final rawJpeg = Uint8List.fromList(img.encodeJpg(testImage, quality: 90));
+      expect(rawJpeg.lengthInBytes, greaterThan(10240));
+
+      final compressed = ImageCompressor.compressToMax10Kb(rawJpeg);
+      expect(compressed.lengthInBytes, lessThanOrEqualTo(ImageCompressor.maxBytes));
+      expect(compressed.lengthInBytes, lessThanOrEqualTo(10240));
+    });
+
+    test('ImageCompressor.cropAndCompress crops image region and compresses to <= 10 KB', () {
+      final testImage = img.Image(width: 500, height: 500);
+      final rawJpeg = Uint8List.fromList(img.encodeJpg(testImage, quality: 85));
+
+      final cropped = ImageCompressor.cropAndCompress(
+        imageBytes: rawJpeg,
+        normX: 0.1,
+        normY: 0.1,
+        normWidth: 0.8,
+        normHeight: 0.8,
+      );
+
+      expect(cropped.lengthInBytes, lessThanOrEqualTo(10240));
+    });
+
+    test('Profile and SpotlightMember deserialize imageUrl field properly', () {
+      final profile = Profile.fromJson({
+        'id': 'p1',
+        'fullName': 'Test User',
+        'imageUrl': 'https://navodayan-profile-photos.s3.amazonaws.com/test.jpg',
+      });
+      expect(profile.imageUrl, 'https://navodayan-profile-photos.s3.amazonaws.com/test.jpg');
+    });
+  });
+
+  group('Chat Request Notification & Offline Delivery Tests', () {
+    testWidgets('NotificationsScreen displays Accept and Reject buttons on pending chat requests', (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({
+        'navodayan_notifications': jsonEncode([
+          {
+            'id': 'notif_123',
+            'title': 'Chat Request from Priya Sharma',
+            'body': 'Hi, I would like to connect with you!',
+            'type': 'chatRequest',
+            'createdAt': DateTime.now().toIso8601String(),
+            'isRead': false,
+            'data': {
+              'requestId': 'req_test_123',
+              'senderId': 'sender_1',
+              'senderName': 'Priya Sharma',
+              'isOutgoing': false,
+            },
+          }
+        ]),
+      });
+
+      final notifProvider = NotificationProvider();
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => AuthProvider()),
+            ChangeNotifierProvider<NotificationProvider>.value(value: notifProvider),
+            ChangeNotifierProxyProvider2<AuthProvider, NotificationProvider, ChatProvider>(
+              create: (_) => ChatProvider(),
+              update: (_, auth, notif, chat) {
+                final provider = chat ?? ChatProvider();
+                provider.updateAuthProvider(auth);
+                provider.updateNotificationProvider(notif);
+                return provider;
+              },
+            ),
+            ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          ],
+          child: const MaterialApp(
+            home: NotificationsScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chat Request from Priya Sharma'), findsOneWidget);
+      expect(find.text('Accept'), findsOneWidget);
+      expect(find.text('Reject'), findsOneWidget);
+
+      // Tap Accept
+      await tester.tap(find.text('Accept'));
+      await tester.pumpAndSettle();
+
+      // Verify that ChatDetailScreen was launched to immediately start the conversation
+      expect(find.byType(ChatDetailScreen), findsOneWidget);
+
+      // Pop back to NotificationsScreen
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Accepted • Tap to Chat'), findsOneWidget);
     });
   });
 }

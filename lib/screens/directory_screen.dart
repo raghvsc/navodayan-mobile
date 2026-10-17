@@ -546,14 +546,19 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
               CircleAvatar(
                 radius: 24,
                 backgroundColor: colors.primary,
-                child: Text(
-                  initials,
-                  style: TextStyle(
-                    color: isDark ? const Color(0xFF0B1120) : Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
+                backgroundImage: (profile.imageUrl != null && profile.imageUrl!.isNotEmpty)
+                    ? NetworkImage(profile.imageUrl!)
+                    : null,
+                child: (profile.imageUrl == null || profile.imageUrl!.isEmpty)
+                    ? Text(
+                        initials,
+                        style: TextStyle(
+                          color: isDark ? const Color(0xFF0B1120) : Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      )
+                    : null,
               ),
               const SizedBox(width: 14),
               Expanded(

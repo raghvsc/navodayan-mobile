@@ -184,4 +184,81 @@ class ApiClient {
   }) {
     return _request(endpoint, method: 'DELETE', token: token, queryParams: queryParams, headers: headers);
   }
+
+  Future<Map<String, dynamic>> uploadMultipart(
+    String endpoint, {
+    required List<int> fileBytes,
+    required String fieldName,
+    required String fileName,
+    String? token,
+    Map<String, String>? fields,
+  }) async {
+    final url = '$baseUrl$endpoint';
+    final uri = Uri.parse(url);
+    final request = http.MultipartRequest('POST', uri);
+
+    request.headers['X-Navodayan-Client'] = clientHeaderValue;
+    if (ApiConfig.clientKey.isNotEmpty) {
+      request.headers['X-Navodayan-Client-Key'] = ApiConfig.clientKey;
+    }
+
+    String? effectiveToken = token ?? _authToken;
+    if (effectiveToken == null || effectiveToken.isEmpty) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final stored = prefs.getString('navodayan_token');
+        if (stored != null && stored.isNotEmpty) {
+          effectiveToken = stored;
+          _authToken = stored;
+        }
+      } catch (_) {}
+    }
+
+    if (effectiveToken != null && effectiveToken.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $effectiveToken';
+    }
+
+    if (fields != null) {
+      request.fields.addAll(fields);
+    }
+
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        fieldName,
+        fileBytes,
+        filename: fileName,
+      ),
+    );
+
+    try {
+      final streamedResponse = await _client.send(request);
+      final response = await http.Response.fromStream(streamedResponse);
+
+      Map<String, dynamic> responseData = {};
+      if (response.body.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map<String, dynamic>) {
+            responseData = decoded;
+          } else if (decoded is List) {
+            responseData = {'data': decoded};
+          }
+        } catch (_) {
+          responseData = {'message': response.body};
+        }
+      }
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        final errorMsg = responseData['message']?.toString() ??
+            responseData['error']?.toString() ??
+            'Upload failed with status ${response.statusCode}';
+        throw Exception(errorMsg);
+      }
+
+      return responseData;
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to upload file: $e');
+    }
+  }
 }

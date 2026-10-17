@@ -91,6 +91,8 @@ class UserProfileMenuButton extends StatelessWidget {
         ? fullName[0].toUpperCase()
         : (user?.email.isNotEmpty == true ? user!.email[0].toUpperCase() : 'U');
 
+    final imageUrl = user?.profile?.imageUrl;
+
     return PopupMenuButton<String>(
       tooltip: 'User Profile & Menu',
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -98,14 +100,17 @@ class UserProfileMenuButton extends StatelessWidget {
       icon: CircleAvatar(
         radius: 17,
         backgroundColor: colors.primary,
-        child: Text(
-          initial,
-          style: TextStyle(
-            color: isDark ? const Color(0xFF0B1120) : Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 13.5,
-          ),
-        ),
+        backgroundImage: (imageUrl != null && imageUrl.isNotEmpty) ? NetworkImage(imageUrl) : null,
+        child: (imageUrl == null || imageUrl.isEmpty)
+            ? Text(
+                initial,
+                style: TextStyle(
+                  color: isDark ? const Color(0xFF0B1120) : Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13.5,
+                ),
+              )
+            : null,
       ),
       itemBuilder: (ctx) {
         return [

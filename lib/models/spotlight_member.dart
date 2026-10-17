@@ -11,6 +11,7 @@ class SpotlightMember {
   final String? company;
   final String? location;
   final bool openToMentor;
+  final String? imageUrl;
 
   SpotlightMember({
     required this.id,
@@ -25,6 +26,7 @@ class SpotlightMember {
     this.company,
     this.location,
     this.openToMentor = false,
+    this.imageUrl,
   });
 
   factory SpotlightMember.fromJson(Map<String, dynamic> json) {
@@ -45,6 +47,10 @@ class SpotlightMember {
       company: json['company']?.toString(),
       location: json['location']?.toString(),
       openToMentor: json['openToMentor'] == true,
+      imageUrl: json['imageUrl']?.toString() ??
+          json['profilePic']?.toString() ??
+          json['avatarUrl']?.toString() ??
+          json['image']?.toString(),
     );
   }
 

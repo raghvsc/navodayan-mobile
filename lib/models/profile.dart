@@ -36,6 +36,7 @@ class Profile {
   final String? industry;
   final String? experience;
   final String? bio;
+  final String? imageUrl;
   final School? jnv;
   final Batch? batch;
   final List<ProfileSkill> skills;
@@ -52,6 +53,7 @@ class Profile {
     this.industry,
     this.experience,
     this.bio,
+    this.imageUrl,
     this.jnv,
     this.batch,
     this.skills = const [],
@@ -114,7 +116,12 @@ class Profile {
       openToMentor: json['openToMentor'] == true || json['openToMentor']?.toString() == 'true',
       industry: json['industry']?.toString(),
       experience: json['experience']?.toString(),
-      bio: json['bio']?.toString(),
+      bio: json['bio']?.toString() ?? (json['details'] is Map ? (json['details'] as Map)['bio']?.toString() : null),
+      imageUrl: json['imageUrl']?.toString() ??
+          json['profilePic']?.toString() ??
+          json['avatarUrl']?.toString() ??
+          json['photo']?.toString() ??
+          (json['details'] is Map ? (json['details'] as Map)['imageUrl']?.toString() : null),
       jnv: parsedSchool,
       batch: parsedBatch,
       skills: parsedSkills,
@@ -134,6 +141,7 @@ class Profile {
       if (industry != null) 'industry': industry,
       if (experience != null) 'experience': experience,
       if (bio != null) 'bio': bio,
+      if (imageUrl != null) 'imageUrl': imageUrl,
       if (jnv != null) 'jnv': jnv!.toJson(),
       if (batch != null) 'batch': batch!.toJson(),
       'skills': skills.map((s) => s.toJson()).toList(),

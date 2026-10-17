@@ -32,4 +32,18 @@ class ProfileService {
 
     return Profile.fromJson(data);
   }
+
+  Future<String> uploadProfilePhoto(List<int> imageBytes, {required String token}) async {
+    final response = await _apiClient.uploadMultipart(
+      '/profiles/me/photo',
+      fileBytes: imageBytes,
+      fieldName: 'photo',
+      fileName: 'photo.jpg',
+      token: token,
+    );
+    final data = response['data'] is Map<String, dynamic>
+        ? response['data'] as Map<String, dynamic>
+        : response;
+    return data['imageUrl']?.toString() ?? '';
+  }
 }

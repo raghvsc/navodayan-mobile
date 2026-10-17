@@ -134,18 +134,23 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                         CircleAvatar(
                           radius: 28,
                           backgroundColor: colors.primary,
-                          child: Text(
-                            auth.user?.profile?.fullName?.isNotEmpty == true
-                                ? auth.user!.profile!.fullName![0].toUpperCase()
-                                : (auth.user?.email.isNotEmpty == true
-                                    ? auth.user!.email[0].toUpperCase()
-                                    : 'U'),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          backgroundImage: (auth.user?.profile?.imageUrl != null && auth.user!.profile!.imageUrl!.isNotEmpty)
+                              ? NetworkImage(auth.user!.profile!.imageUrl!)
+                              : null,
+                          child: (auth.user?.profile?.imageUrl == null || auth.user!.profile!.imageUrl!.isEmpty)
+                              ? Text(
+                                  auth.user?.profile?.fullName?.isNotEmpty == true
+                                      ? auth.user!.profile!.fullName![0].toUpperCase()
+                                      : (auth.user?.email.isNotEmpty == true
+                                          ? auth.user!.email[0].toUpperCase()
+                                          : 'U'),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                )
+                              : null,
                         ),
                         const SizedBox(width: 16),
                         Expanded(

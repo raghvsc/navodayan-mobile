@@ -97,7 +97,7 @@ class NavodayanApp extends StatelessWidget {
               '/about': (context) => const AboutScreen(),
               '/contact': (context) => const ContactScreen(),
               '/settings': (context) => const SettingsScreen(),
-              '/profile': (context) => const ProfileScreen(),
+              '/profile': (context) => const ProfileScreen(isSelf: true),
               '/chats': (context) => const ChatsScreen(),
               '/notifications': (context) => const NotificationsScreen(),
               '/meeting': (context) => const MeetingScreen(),

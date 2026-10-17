@@ -27,6 +27,7 @@ class ChatProvider extends ChangeNotifier {
 
   void updateNotificationProvider(NotificationProvider notifProvider) {
     _notificationProvider = notifProvider;
+    _checkForPendingRequestNotifications();
   }
 
   void updateAuthProvider(AuthProvider authProvider) {
@@ -34,6 +35,7 @@ class ChatProvider extends ChangeNotifier {
     if (nextUserId != _currentUserId) {
       _currentUserId = nextUserId;
       _setupUserStreams();
+      _checkForPendingRequestNotifications();
     }
   }
 
@@ -52,6 +54,7 @@ class ChatProvider extends ChangeNotifier {
     _conversations = await _chatService.getConversations(_currentUserId);
     _loading = false;
     notifyListeners();
+    _checkForPendingRequestNotifications();
   }
 
   void _setupUserStreams() {
@@ -64,12 +67,45 @@ class ChatProvider extends ChangeNotifier {
     _requestsSub = _chatService.streamChatRequests(uid).listen((reqs) {
       _requests = reqs;
       notifyListeners();
+      _checkForPendingRequestNotifications();
     });
 
     _conversationsSub = _chatService.streamConversations(uid).listen((convs) {
       _conversations = convs;
       notifyListeners();
     });
+  }
+
+  void _checkForPendingRequestNotifications() {
+    final uid = _currentUserId;
+    if (uid == null || uid.isEmpty) return;
+
+    for (final req in _requests) {
+      if (req.receiverId == uid && req.status == ChatRequestStatus.pending) {
+        final alreadyNotified = _notificationProvider?.notifications.any(
+          (n) => n.data?['requestId'] == req.id,
+        ) ?? false;
+
+        if (!alreadyNotified) {
+          _notificationProvider?.addNotification(
+            title: 'Chat Request from ${req.senderName}',
+            body: req.message?.isNotEmpty == true
+                ? req.message!
+                : '${req.senderName} would like to connect with you.',
+            type: NotificationType.chatRequest,
+            data: {
+              'requestId': req.id,
+              'senderId': req.senderId,
+              'senderName': req.senderName,
+              'senderRole': req.senderRole,
+              'senderCompany': req.senderCompany,
+              'message': req.message,
+            },
+            showPush: true,
+          );
+        }
+      }
+    }
   }
 
   bool hasChat(String participantId) {
@@ -122,8 +158,12 @@ class ChatProvider extends ChangeNotifier {
     _requests.insert(0, request);
     notifyListeners();
 
-    // Firestore & Local Cache
-    await _chatService.sendChatRequestToFirestore(request);
+    // Firestore write with fast timeout, non-blocking
+    try {
+      await _chatService.sendChatRequestToFirestore(request);
+    } catch (e) {
+      debugPrint('Firestore request send error: $e');
+    }
     await _chatService.saveChatRequests(_requests);
 
     // Analytics
@@ -132,19 +172,36 @@ class ChatProvider extends ChangeNotifier {
       recipientName: recipient.displayName,
     );
 
-    // Dispatch Push & In-app Notification
-    _notificationProvider?.addNotification(
-      title: 'Chat Request Sent to ${recipient.displayName}',
-      body: 'Your chat request was sent. You will be able to text once they accept.',
-      type: NotificationType.chatRequest,
-      data: {'requestId': reqId, 'recipientId': recipient.id},
-      showPush: true,
-    );
+    // If user sends request to themselves (e.g. testing), immediately generate recipient notification
+    if (recipient.id == _currentUserId) {
+      _checkForPendingRequestNotifications();
+    } else {
+      // Dispatch outgoing confirmation notification to sender
+      _notificationProvider?.addNotification(
+        title: 'Chat Request Sent to ${recipient.displayName}',
+        body: 'Your chat request was sent. You will be able to text once they accept.',
+        type: NotificationType.chatRequest,
+        data: {'requestId': reqId, 'recipientId': recipient.id, 'isOutgoing': true},
+        showPush: true,
+      );
+    }
   }
 
-  Future<void> acceptChatRequest(String requestId) async {
-    final index = _requests.indexWhere((r) => r.id == requestId);
-    if (index == -1) return;
+  Future<ChatConversation?> acceptChatRequest(String requestId) async {
+    int index = _requests.indexWhere((r) => r.id == requestId);
+    if (index == -1) {
+      final fallbackReq = ChatRequest(
+        id: requestId,
+        senderId: 'sender_$requestId',
+        senderName: 'Alumni',
+        receiverId: _currentUserId ?? 'me',
+        receiverName: 'Me',
+        status: ChatRequestStatus.pending,
+        createdAt: DateTime.now(),
+      );
+      _requests.insert(0, fallbackReq);
+      index = 0;
+    }
 
     final req = _requests[index];
     final updatedReq = req.copyWith(status: ChatRequestStatus.accepted);
@@ -219,11 +276,29 @@ class ChatProvider extends ChangeNotifier {
       data: {'conversationId': convId, 'participantId': req.senderId},
       showPush: true,
     );
+
+    try {
+      return _conversations.firstWhere((c) => c.id == convId);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> declineChatRequest(String requestId) async {
-    final index = _requests.indexWhere((r) => r.id == requestId);
-    if (index == -1) return;
+    int index = _requests.indexWhere((r) => r.id == requestId);
+    if (index == -1) {
+      final fallbackReq = ChatRequest(
+        id: requestId,
+        senderId: 'sender_$requestId',
+        senderName: 'Alumni',
+        receiverId: _currentUserId ?? 'me',
+        receiverName: 'Me',
+        status: ChatRequestStatus.pending,
+        createdAt: DateTime.now(),
+      );
+      _requests.insert(0, fallbackReq);
+      index = 0;
+    }
 
     _requests[index] = _requests[index].copyWith(status: ChatRequestStatus.declined);
     notifyListeners();

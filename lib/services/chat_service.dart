@@ -117,16 +117,23 @@ class ChatService {
     try {
       await firestore.collection('chat_requests').doc(request.id).set({
         'id': request.id,
+        if (request.backendRequestId != null) 'backendRequestId': request.backendRequestId,
         'senderId': request.senderId,
         'senderName': request.senderName,
         'senderRole': request.senderRole,
         'senderCompany': request.senderCompany,
         'receiverId': request.receiverId,
+        if (request.receiverProfileId != null) 'receiverProfileId': request.receiverProfileId,
         'receiverName': request.receiverName,
         'message': request.message,
         'status': request.status.name,
         'createdAt': FieldValue.serverTimestamp(),
-        'participants': [request.senderId, request.receiverId],
+        'participants': [
+          request.senderId,
+          request.receiverId,
+          if (request.receiverProfileId != null && request.receiverProfileId!.isNotEmpty)
+            request.receiverProfileId!,
+        ],
       }, SetOptions(merge: true)).timeout(
         const Duration(seconds: 2),
         onTimeout: () {

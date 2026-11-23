@@ -1,0 +1,6 @@
+• Initial release for internal testing.
+• Verified Alumni Directory with school, batch, and profession filters.
+• 1-on-1 alumni mentorship, CARE knowledge sessions, and community events.
+• Secure messaging with built-in UGC safety (user block, message report, and connection management).
+• Privacy controls: in-app data export and complete account deletion.
+• Built with Android 15/16 edge-to-edge layout, targetSdk 36, and 16 KB page-size support.

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/profile.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
+import '../services/dashboard_service.dart';
 import '../services/profile_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_bar_actions.dart';
@@ -29,6 +30,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final ProfileService _profileService = ProfileService();
+  final DashboardService _dashboardService = DashboardService();
   Profile? _profile;
   bool _loading = true;
   String? _errorMessage;
@@ -50,8 +52,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
         widget.profileId == 'me' ||
         (auth.user?.profile?.id != null && auth.user!.profile!.id == widget.profileId);
 
+    // If viewing self and we already have a cached profile in auth.user, populate immediately
+    if (_profile == null && isViewingSelf && auth.user?.profile != null) {
+      _profile = Profile.fromUserProfile(auth.user!.profile!);
+      _loading = false;
+      if (mounted) setState(() {});
+    }
+
     if (widget.initialProfile != null && !isViewingSelf) {
       setState(() => _loading = false);
+    }
+
+    // If viewing self and not authenticated
+    if (isViewingSelf && (!auth.isAuthenticated || token == null)) {
+      if (mounted) {
+        setState(() {
+          if (_profile == null) {
+            _errorMessage = 'AUTH_REQUIRED';
+          }
+          _loading = false;
+        });
+      }
+      return;
     }
 
     try {
@@ -69,16 +91,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         setState(() {
           _profile = fetched;
+          _errorMessage = null;
           _loading = false;
         });
       }
     } catch (e) {
+      final errorStr = e.toString().replaceAll('Exception: ', '');
+      final isAuthError = errorStr.toLowerCase().contains('invalid or expired token') ||
+          errorStr.toLowerCase().contains('unauthorized') ||
+          errorStr.toLowerCase().contains('401') ||
+          errorStr.toLowerCase().contains('no token provided');
+
+      if (isAuthError && isViewingSelf) {
+        auth.logout();
+      }
+
       if (mounted) {
         if (_profile == null) {
           setState(() {
-            _errorMessage = e.toString().replaceAll('Exception: ', '');
+            _errorMessage = isAuthError ? 'SESSION_EXPIRED' : errorStr;
             _loading = false;
           });
+        } else {
+          setState(() => _loading = false);
+          if (isAuthError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Session expired. Please log in again.')),
+            );
+          }
         }
       }
     }
@@ -92,15 +132,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final chatProvider = context.read<ChatProvider>();
-    if (chatProvider.hasChat(profile.id)) {
-      final conv = chatProvider.conversations.firstWhere((c) => c.participantId == profile.id);
+    final targetId = profile.effectiveUserId;
+    if (chatProvider.hasChat(profile.id) || chatProvider.hasChat(targetId)) {
+      final conv = chatProvider.conversations.firstWhere(
+        (c) => c.participantId == profile.id || c.participantId == targetId,
+      );
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ChatDetailScreen(
             conversationId: conv.id,
-            participantId: profile.id,
-            participantName: profile.displayName,
+            participantId: conv.participantId,
+            participantName: conv.participantName,
             participantRole: profile.currentRole,
             participantCompany: profile.company,
           ),
@@ -112,6 +155,189 @@ class _ProfileScreenState extends State<ProfileScreen> {
         builder: (_) => SendChatRequestDialog(recipient: profile),
       );
     }
+  }
+
+  void _showAppreciateDialog(Profile p) {
+    final noteController = TextEditingController();
+    String selectedCategory = 'Mentorship';
+    final categories = ['Mentorship', 'Volunteering', 'Guidance', 'Collaboration', 'General'];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return AlertDialog(
+            title: Text('Appreciate ${p.displayName}'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Thank them for help or support. They will receive recognition points for your selected category.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  value: selectedCategory,
+                  decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+                  items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                  onChanged: (val) => setModalState(() => selectedCategory = val ?? 'Mentorship'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: noteController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Note (Optional)',
+                    hintText: 'e.g. Thanks for the insightful career guidance!',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  try {
+                    await _dashboardService.sendAppreciation(
+                      recipientId: p.id,
+                      category: selectedCategory,
+                      note: noteController.text.trim(),
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(content: Text('Appreciation sent to ${p.displayName}!')),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(content: Text('Failed to send appreciation: $e')),
+                    );
+                  }
+                },
+                child: const Text('Send Recognition'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showReportDialog(Profile p) {
+    String selectedReason = 'Inappropriate content';
+    final detailsController = TextEditingController();
+    final reasons = [
+      'Inappropriate content',
+      'Harassment or abuse',
+      'Spam or fake profile',
+      'Other policy violation',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return AlertDialog(
+            title: const Text('Report Profile'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tell us what is wrong. Reports go directly to Navodayan admins for review.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                ...reasons.map((r) => RadioListTile<String>(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(r, style: const TextStyle(fontSize: 13)),
+                      value: r,
+                      groupValue: selectedReason,
+                      onChanged: (val) => setModalState(() => selectedReason = val ?? r),
+                    )),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: detailsController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Additional details (optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade800),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  try {
+                    await _dashboardService.reportMember(
+                      targetUserId: p.id,
+                      reason: selectedReason,
+                      details: detailsController.text.trim(),
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      const SnackBar(content: Text('Report submitted. Admins will review promptly.')),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(content: Text('Failed to submit report: $e')),
+                    );
+                  }
+                },
+                child: const Text('Submit Report', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _confirmBlockDialog(Profile p) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Block ${p.displayName}?'),
+        content: const Text(
+          'You will no longer receive connection requests, messages, or interaction from this member.',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await _dashboardService.blockUser(p.id);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Blocked ${p.displayName}')),
+                  );
+                  Navigator.pop(context);
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to block user: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Block Member', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -135,10 +361,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     if (_errorMessage != null && _profile == null) {
+      final isSessionExpired = _errorMessage == 'SESSION_EXPIRED' ||
+          _errorMessage!.toLowerCase().contains('invalid or expired token');
+      final isAuthRequired = _errorMessage == 'AUTH_REQUIRED';
+
+      IconData errorIcon = Icons.person_off_rounded;
+      Color iconColor = colors.error;
+      String errorTitle = 'Profile Not Found';
+      String errorSubtitle = _errorMessage!;
+      String buttonText = 'Try Again';
+      VoidCallback onButtonPressed = _fetchProfile;
+
+      if (isSessionExpired) {
+        errorIcon = Icons.lock_clock_outlined;
+        iconColor = colors.secondary;
+        errorTitle = 'Session Expired';
+        errorSubtitle = 'Your login session has expired. Please sign in again to view and manage your profile.';
+        buttonText = 'Sign In Again';
+        onButtonPressed = () {
+          Navigator.pushNamed(context, '/login').then((_) => _fetchProfile());
+        };
+      } else if (isAuthRequired) {
+        errorIcon = Icons.account_circle_outlined;
+        iconColor = colors.primary;
+        errorTitle = 'Sign In Required';
+        errorSubtitle = 'Please sign in to view and manage your Navodayan alumni profile.';
+        buttonText = 'Sign In';
+        onButtonPressed = () {
+          Navigator.pushNamed(context, '/login').then((_) => _fetchProfile());
+        };
+      }
+
       return Scaffold(
         backgroundColor: colors.background,
         appBar: AppBar(
-          title: const Text('User Profile'),
+          title: Text(isSelf ? 'My Profile' : 'User Profile'),
           actions: const [CommonAppBarActions()],
         ),
         body: Center(
@@ -147,22 +404,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.person_off_rounded, size: 56, color: colors.error),
+                Icon(errorIcon, size: 56, color: iconColor),
                 const SizedBox(height: 16),
                 Text(
-                  'Profile Not Found',
+                  errorTitle,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colors.textPrimary),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  _errorMessage!,
+                  errorSubtitle,
                   style: TextStyle(fontSize: 13, color: colors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: _fetchProfile,
-                  child: const Text('Try Again'),
+                  onPressed: onButtonPressed,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                  child: Text(buttonText),
                 ),
               ],
             ),
@@ -341,7 +604,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   },
                 )
-              else
+              else ...[
                 IconButton(
                   icon: const Icon(Icons.share_rounded, color: Colors.white),
                   tooltip: 'Share Profile',
@@ -351,6 +614,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   },
                 ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                  onSelected: (value) {
+                    if (value == 'appreciate') {
+                      _showAppreciateDialog(p);
+                    } else if (value == 'report') {
+                      _showReportDialog(p);
+                    } else if (value == 'block') {
+                      _confirmBlockDialog(p);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'appreciate',
+                      child: Row(
+                        children: [
+                          Icon(Icons.workspace_premium_rounded, color: Color(0xFFF59E0B), size: 18),
+                          SizedBox(width: 10),
+                          Text('Appreciate / Recognize'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'report',
+                      child: Row(
+                        children: [
+                          Icon(Icons.flag_outlined, color: Colors.orange, size: 18),
+                          SizedBox(width: 10),
+                          Text('Report Profile'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'block',
+                      child: Row(
+                        children: [
+                          Icon(Icons.block_rounded, color: Colors.red, size: 18),
+                          SizedBox(width: 10),
+                          Text('Block Member'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const CommonAppBarActions(),
             ],
           ),
@@ -407,6 +715,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (p.isJnvVerified) ...[
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: colors.success.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: colors.success.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.check_circle_rounded, size: 16, color: colors.success),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'JNV verified',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: colors.success,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '· confirmed by coordinator or admin',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: colors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         if (p.jnv != null) ...[
                           Row(
                             children: [
@@ -444,34 +786,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                         if (p.batch != null) ...[
                           const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: colors.background,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: colors.border),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.history_edu_rounded, size: 16, color: colors.primary),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Batch of ${p.batch!.displayName}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: colors.textPrimary,
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: colors.background,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: colors.border),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.history_edu_rounded, size: 16, color: colors.primary),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      p.association?.toLowerCase() == 'teacher' || p.association?.toLowerCase() == 'staff'
+                                          ? 'Joined ${p.batch!.startYear}'
+                                          : 'Batch of ${p.batch!.displayName}',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: colors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (p.postingStatus != null && p.postingStatusLabel.isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: colors.primary.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    p.postingStatusLabel,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: colors.primary,
+                                    ),
                                   ),
                                 ),
                               ],
-                            ),
+                            ],
                           ),
                         ],
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // Privacy & Contact Visibility Card for Self
+                  if (isSelf) ...[
+                    _buildSectionCard(
+                      title: 'Privacy & Contact Visibility',
+                      icon: Icons.lock_outline_rounded,
+                      colors: colors,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildVisibilityRow('Profile', p.profileVisibility == 'JNV' ? 'My JNV only' : 'Anyone on Navodayan', colors),
+                          const SizedBox(height: 8),
+                          _buildVisibilityRow('Email', p.emailVisibility == 'NONE' ? 'Nobody' : (p.emailVisibility == 'JNV' ? 'My JNV only' : 'Anyone on Navodayan'), colors),
+                          const SizedBox(height: 8),
+                          _buildVisibilityRow('Phone', p.phoneVisibility == 'NONE' ? 'Nobody' : (p.phoneVisibility == 'JNV' ? 'My JNV only' : 'Anyone on Navodayan'), colors),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Admin and your JNV coordinators can still reach you for school work.',
+                            style: TextStyle(fontSize: 11, color: colors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
                   // Mentorship Status Card
                   if (p.openToMentor) ...[
@@ -675,6 +1066,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
               fontWeight: FontWeight.w600,
               color: colors.textPrimary,
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVisibilityRow(String label, String value, ThemePalette colors) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 13, color: colors.textSecondary),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: colors.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            value,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: colors.primary),
           ),
         ),
       ],

@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/community_stats.dart';
-import '../models/spotlight_member.dart';
 import '../providers/auth_provider.dart';
 import '../services/community_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_bar_actions.dart';
+import 'care_screen.dart';
+import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -24,9 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
   CommunityStats _stats = CommunityStats.defaultStats;
   bool _isLoadingStats = true;
 
-  SpotlightData? _spotlightData;
-  bool _isLoadingSpotlight = true;
-
   @override
   void initState() {
     super.initState();
@@ -34,18 +32,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadHomeData() async {
-    final statsFuture = _communityService.getStats();
-    final spotlightFuture = _communityService.getSpotlight();
-
-    final results = await Future.wait([statsFuture, spotlightFuture]);
-
-    if (mounted) {
-      setState(() {
-        _stats = results[0] as CommunityStats;
-        _isLoadingStats = false;
-        _spotlightData = results[1] as SpotlightData?;
-        _isLoadingSpotlight = false;
-      });
+    try {
+      final stats = await _communityService.getStats();
+      if (mounted) {
+        setState(() {
+          _stats = stats;
+          _isLoadingStats = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoadingStats = false);
+      }
     }
   }
 
@@ -109,49 +107,43 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Hero Card
+                // Hero Card (matches home_redesigned/code.html)
                 Container(
                   padding: const EdgeInsets.all(22),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isDark
-                          ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                          : [const Color(0xFF162D59), const Color(0xFF0E1C38)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFF0B2545),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: colors.primary.withValues(alpha: isDark ? 0.25 : 0.15),
+                      color: Colors.white.withValues(alpha: 0.1),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
+                        color: const Color(0xFF0B2545).withValues(alpha: isDark ? 0.35 : 0.2),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Row(
+                      Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.hub_outlined, size: 15, color: Color(0xFF93C5FD)),
-                          SizedBox(width: 6),
+                          const Icon(Icons.hub_outlined, size: 16, color: Color(0xFF38BDF8)),
+                          const SizedBox(width: 7),
                           Text(
                             'Navodaya Alumni Network',
                             style: TextStyle(
-                              color: Color(0xFFDBEAFE),
+                              color: const Color(0xFFE2E8F0).withValues(alpha: 0.9),
                               fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.4,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
                       Text(
                         auth.isAuthenticated && (auth.user?.profile?.fullName?.isNotEmpty == true)
                             ? 'Welcome back, ${auth.user!.profile!.fullName}!'
@@ -167,34 +159,52 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         'Search batchmates, seek career mentorship, and stay connected with the global JNV family.',
                         style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.white.withValues(alpha: 0.85),
-                          height: 1.4,
+                          fontSize: 12.5,
+                          color: const Color(0xFFCBD5E1),
+                          height: 1.45,
                         ),
                       ),
                       const SizedBox(height: 18),
-                      ElevatedButton(
-                        onPressed: () {
+                      InkWell(
+                        onTap: () {
                           if (widget.onNavigateTab != null) {
                             widget.onNavigateTab!(1); // Directory
                           } else {
                             Navigator.pushNamed(context, '/directory');
                           }
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: colors.primary,
-                          foregroundColor: isDark ? const Color(0xFF0B1120) : Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('Explore Directory', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            SizedBox(width: 6),
-                            Icon(Icons.arrow_forward_rounded, size: 15),
-                          ],
+                        borderRadius: BorderRadius.circular(999),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF183963),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: const Color(0xFF60A5FA).withValues(alpha: 0.25),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Explore Directory',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                              SizedBox(width: 6),
+                              Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFFBFDBFE)),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -224,9 +234,65 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Navodayans in the Spotlight Section
-                _buildSpotlightSection(context),
-                const SizedBox(height: 28),
+                if (auth.isAuthenticated) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: colors.primary.withValues(alpha: 0.15)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: colors.primary,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.space_dashboard_rounded, color: Colors.white, size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'My Desk',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Check verification, batchmates & circle activity',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: colors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        OutlinedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          ),
+                          child: const Text('Open'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
 
                 // Feature shortcuts grid
                 Text(
@@ -269,6 +335,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: _buildFeatureCard(
                         context,
+                        icon: Icons.lightbulb_outline_rounded,
+                        title: 'Navodayan CARE',
+                        desc: 'Alumni sessions on exams & careers',
+                        color: const Color(0xFFD97706),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const CareScreen()),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _buildFeatureCard(
+                        context,
                         icon: Icons.event_available_rounded,
                         title: 'Events & Meets',
                         desc: 'Join meetups and reunions',
@@ -276,7 +358,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () => widget.onNavigateTab != null ? widget.onNavigateTab!(3) : Navigator.pushNamed(context, '/events'),
                       ),
                     ),
-                    const SizedBox(width: 14),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
                     Expanded(
                       child: _buildFeatureCard(
                         context,
@@ -293,6 +379,26 @@ class _HomeScreenState extends State<HomeScreen> {
                             return;
                           }
                           Navigator.pushNamed(context, '/connections');
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _buildFeatureCard(
+                        context,
+                        icon: Icons.forum_rounded,
+                        title: 'Member Chats',
+                        desc: '1-on-1 alumni messaging',
+                        color: const Color(0xFFEC4899),
+                        onTap: () {
+                          if (!auth.isAuthenticated) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please log in to view chats')),
+                            );
+                            Navigator.pushNamed(context, '/login');
+                            return;
+                          }
+                          Navigator.pushNamed(context, '/chats');
                         },
                       ),
                     ),
@@ -361,20 +467,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: _buildFeatureCard(
                         context,
-                        icon: Icons.forum_rounded,
-                        title: 'Member Chats',
-                        desc: '1-on-1 alumni messaging',
-                        color: const Color(0xFFEC4899),
-                        onTap: () {
-                          if (!auth.isAuthenticated) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Please log in to view chats')),
-                            );
-                            Navigator.pushNamed(context, '/login');
-                            return;
-                          }
-                          Navigator.pushNamed(context, '/chats');
-                        },
+                        icon: Icons.help_outline_rounded,
+                        title: 'Help & Guide',
+                        desc: 'Roles, CARE & app guide',
+                        color: const Color(0xFF6366F1),
+                        onTap: () => Navigator.pushNamed(context, '/help'),
                       ),
                     ),
                   ],
@@ -433,294 +530,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSpotlightSection(BuildContext context) {
-    final colors = AppColors.of(context);
-    final members = _spotlightData?.members ?? [];
-    final mode = _spotlightData?.mode ?? 'STATE_RANDOM';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: colors.secondary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(Icons.auto_awesome_rounded, color: colors.secondary, size: 16),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      'Navodayans in the spotlight',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: colors.textPrimary,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            InkWell(
-              onTap: () {
-                if (widget.onNavigateTab != null) {
-                  widget.onNavigateTab!(1); // Directory
-                } else {
-                  Navigator.pushNamed(context, '/directory');
-                }
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                child: Text(
-                  'See all',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: colors.primary,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 3),
-        Text(
-          mode == 'MANUAL'
-              ? 'People featured by the community team. Tap card to view profile.'
-              : 'One from each state. Tap card to view profile.',
-          style: TextStyle(fontSize: 12, color: colors.textSecondary),
-        ),
-        const SizedBox(height: 12),
-        if (_isLoadingSpotlight)
-          SizedBox(
-            height: 135,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: 3,
-              separatorBuilder: (context, index) => const SizedBox(width: 12),
-              itemBuilder: (context, index) => _buildSpotlightPlaceholder(colors),
-            ),
-          )
-        else if (members.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: colors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: colors.border),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, color: colors.textSecondary, size: 18),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'No spotlight members available right now. Pull down to refresh.',
-                    style: TextStyle(fontSize: 12, color: colors.textSecondary),
-                  ),
-                ),
-              ],
-            ),
-          )
-        else
-          SizedBox(
-            height: 135,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: members.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final member = members[index];
-                return _buildSpotlightCard(context, member, colors);
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildSpotlightCard(BuildContext context, SpotlightMember member, ThemePalette colors) {
-    final initial = member.fullName.isNotEmpty ? member.fullName[0].toUpperCase() : 'N';
-    final schoolBatch = member.schoolBatchDisplay;
-    final roleCompany = member.roleCompanyDisplay;
-
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ProfileScreen(profileId: member.id),
-          ),
-        );
-      },
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        width: 250,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: colors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Top: Avatar + Name + State
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 17,
-                  backgroundColor: colors.primary,
-                  backgroundImage: (member.imageUrl != null && member.imageUrl!.isNotEmpty)
-                      ? NetworkImage(member.imageUrl!)
-                      : null,
-                  child: (member.imageUrl == null || member.imageUrl!.isEmpty)
-                      ? Text(
-                          initial,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        member.fullName,
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.bold,
-                          color: colors.textPrimary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 1),
-                      Text(
-                        member.state ?? 'India',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: colors.primary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            // Middle: School & Batch
-            Row(
-              children: [
-                Icon(Icons.school_outlined, size: 13, color: colors.textSecondary),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    schoolBatch.isNotEmpty ? schoolBatch : (member.school ?? 'Navodaya Alumni'),
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: colors.textSecondary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-
-            // Bottom: Role & Company
-            Row(
-              children: [
-                Icon(Icons.work_outline_rounded, size: 13, color: colors.textSecondary),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    roleCompany.isNotEmpty ? roleCompany : (member.role ?? member.company ?? 'Alumni'),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: colors.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSpotlightPlaceholder(ThemePalette colors) {
-    return Container(
-      width: 250,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: colors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 17,
-                backgroundColor: colors.background,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(height: 12, width: 100, color: colors.background),
-                    const SizedBox(height: 4),
-                    Container(height: 10, width: 60, color: colors.background),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          Container(height: 10, width: 180, color: colors.background),
-          Container(height: 10, width: 140, color: colors.background),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStatItem(BuildContext context, String value, String label) {
     final colors = AppColors.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Expanded(
       child: Container(
@@ -730,24 +542,32 @@ class _HomeScreenState extends State<HomeScreen> {
           color: colors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: colors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           children: [
             Text(
               value,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 16.5,
                 fontWeight: FontWeight.w900,
-                color: colors.primary,
+                color: colors.textPrimary,
+                letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(
               label,
               style: TextStyle(
                 fontSize: 11,
                 color: colors.textSecondary,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
             ),
@@ -766,34 +586,43 @@ class _HomeScreenState extends State<HomeScreen> {
     required VoidCallback onTap,
   }) {
     final colors = AppColors.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: colors.surface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: colors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
+                color: color.withValues(alpha: isDark ? 0.25 : 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: color, size: 22),
+              child: Icon(icon, color: color, size: 21),
             ),
             const SizedBox(height: 12),
             Text(
               title,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 14,
+                fontSize: 13,
                 color: colors.textPrimary,
               ),
             ),
@@ -803,7 +632,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(
                 color: colors.textSecondary,
                 fontSize: 11,
-                height: 1.3,
+                height: 1.35,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,

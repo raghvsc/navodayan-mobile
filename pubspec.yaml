@@ -2,7 +2,7 @@ name: navodayan
 description: "Flutter client for the Navodayan community portal."
 publish_to: 'none'
 
-version: 1.0.2+3
+version: 1.0.6+7
 
 environment:
   sdk: ^3.13.0
@@ -26,6 +26,8 @@ dependencies:
   permission_handler: ^13.0.1
   image_picker: ^1.2.4
   image: ^4.12.0
+  in_app_review: ^2.0.12
+  in_app_update: ^5.0.0
 
 dev_dependencies:
   flutter_test:

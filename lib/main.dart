@@ -2,20 +2,24 @@ import 'dart:ui';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/chat_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/about_screen.dart';
+import 'screens/care_screen.dart';
 import 'screens/chats_screen.dart';
 import 'screens/connections_screen.dart';
 import 'screens/contact_screen.dart';
 import 'screens/contributions_screen.dart';
 import 'screens/coordinator_dashboard_screen.dart';
+import 'screens/dashboard_screen.dart';
 import 'screens/directory_screen.dart';
 import 'screens/events_screen.dart';
 import 'screens/forgot_password_screen.dart';
+import 'screens/help_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation_shell.dart';
 import 'screens/meeting_screen.dart';
@@ -31,6 +35,16 @@ import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Edge-to-edge support for Android 15/16 (API 35/36+) and modern mobile OS
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarContrastEnforced: false,
+    ),
+  );
 
   try {
     await Firebase.initializeApp();
@@ -94,6 +108,10 @@ class NavodayanApp extends StatelessWidget {
               '/directory': (context) => const DirectoryScreen(),
               '/mentorship': (context) => const MentorshipScreen(),
               '/events': (context) => const EventsScreen(),
+              '/care': (context) => const CareScreen(),
+              '/dashboard': (context) => const DashboardScreen(),
+              '/my-desk': (context) => const DashboardScreen(),
+              '/help': (context) => const HelpScreen(),
               '/about': (context) => const AboutScreen(),
               '/contact': (context) => const ContactScreen(),
               '/settings': (context) => const SettingsScreen(),

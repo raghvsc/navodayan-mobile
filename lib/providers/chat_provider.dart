@@ -5,11 +5,13 @@ import '../models/notification_item.dart';
 import '../models/profile.dart';
 import '../services/analytics_service.dart';
 import '../services/chat_service.dart';
+import '../services/connections_service.dart';
 import 'auth_provider.dart';
 import 'notification_provider.dart';
 
 class ChatProvider extends ChangeNotifier {
   final ChatService _chatService = ChatService();
+  final ConnectionsService _connectionsService = ConnectionsService();
   NotificationProvider? _notificationProvider;
   String? _currentUserId;
 
@@ -36,12 +38,16 @@ class ChatProvider extends ChangeNotifier {
       _currentUserId = nextUserId;
       _setupUserStreams();
       _checkForPendingRequestNotifications();
+      syncWithBackendConnections();
     }
   }
 
   List<ChatRequest> get requests => _requests;
-  List<ChatRequest> get pendingRequests =>
-      _requests.where((r) => r.status == ChatRequestStatus.pending && r.receiverId == _currentUserId).toList();
+  List<ChatRequest> get pendingRequests => _requests
+      .where((r) =>
+          r.status == ChatRequestStatus.pending &&
+          (r.receiverId == _currentUserId || r.receiverProfileId == _currentUserId))
+      .toList();
   List<ChatConversation> get conversations => _conversations;
   bool get loading => _loading;
 
@@ -55,6 +61,77 @@ class ChatProvider extends ChangeNotifier {
     _loading = false;
     notifyListeners();
     _checkForPendingRequestNotifications();
+    syncWithBackendConnections();
+  }
+
+  Future<void> syncWithBackendConnections() async {
+    final uid = _currentUserId;
+    if (uid == null || uid.isEmpty) return;
+
+    try {
+      final connectionsData = await _connectionsService.getConnections();
+
+      // 1. Sync incoming requests to ChatRequest list
+      for (final item in connectionsData.incoming) {
+        final other = item.otherMember;
+        final senderId = other?.id ?? '';
+        final senderName = other?.fullName ?? 'Navodayan Member';
+        final requestId = 'connect_${item.id}';
+
+        final index = _requests.indexWhere((r) =>
+            r.id == requestId ||
+            r.backendRequestId == item.id ||
+            (r.senderId == senderId && (r.receiverId == uid || r.receiverProfileId == uid)));
+
+        if (index == -1) {
+          final newReq = ChatRequest(
+            id: requestId,
+            backendRequestId: item.id,
+            senderId: senderId,
+            senderName: senderName,
+            senderRole: other?.currentRole,
+            senderCompany: other?.company,
+            receiverId: uid,
+            receiverName: 'Me',
+            message: item.note,
+            status: ChatRequestStatus.pending,
+            createdAt: item.createdAt ?? DateTime.now(),
+          );
+          _requests.insert(0, newReq);
+        }
+      }
+
+      // 2. Sync accepted connections to active conversations
+      for (final item in connectionsData.accepted) {
+        final other = item.otherMember;
+        if (other != null && other.id.isNotEmpty) {
+          final convId = _getConversationId(uid, other.id);
+          final exists = _conversations.any((c) => c.id == convId || c.participantId == other.id);
+          if (!exists) {
+            final newConv = ChatConversation(
+              id: convId,
+              participantId: other.id,
+              participantName: other.fullName ?? 'Navodayan Member',
+              participantRole: other.currentRole,
+              participantCompany: other.company,
+              lastMessage: item.note?.isNotEmpty == true
+                  ? item.note!
+                  : 'Connected! Tap here to start chatting.',
+              lastMessageTime: item.createdAt ?? DateTime.now(),
+              unreadCount: 0,
+            );
+            _conversations.insert(0, newConv);
+          }
+        }
+      }
+
+      notifyListeners();
+      _checkForPendingRequestNotifications();
+      await _chatService.saveChatRequests(_requests);
+      await _chatService.saveConversations(_conversations);
+    } catch (e) {
+      debugPrint('syncWithBackendConnections notice: $e');
+    }
   }
 
   void _setupUserStreams() {
@@ -81,9 +158,10 @@ class ChatProvider extends ChangeNotifier {
     if (uid == null || uid.isEmpty) return;
 
     for (final req in _requests) {
-      if (req.receiverId == uid && req.status == ChatRequestStatus.pending) {
+      final isForMe = req.receiverId == uid || req.receiverProfileId == uid;
+      if (isForMe && req.status == ChatRequestStatus.pending) {
         final alreadyNotified = _notificationProvider?.notifications.any(
-          (n) => n.data?['requestId'] == req.id,
+          (n) => n.data?['requestId'] == req.id || n.data?['backendRequestId'] == req.backendRequestId,
         ) ?? false;
 
         if (!alreadyNotified) {
@@ -95,6 +173,7 @@ class ChatProvider extends ChangeNotifier {
             type: NotificationType.chatRequest,
             data: {
               'requestId': req.id,
+              'backendRequestId': req.backendRequestId,
               'senderId': req.senderId,
               'senderName': req.senderName,
               'senderRole': req.senderRole,
@@ -116,7 +195,7 @@ class ChatProvider extends ChangeNotifier {
     try {
       return _requests.firstWhere(
         (r) =>
-            (r.senderId == participantId || r.receiverId == participantId) &&
+            (r.senderId == participantId || r.receiverId == participantId || r.receiverProfileId == participantId) &&
             r.status == ChatRequestStatus.pending,
       );
     } catch (_) {
@@ -141,6 +220,7 @@ class ChatProvider extends ChangeNotifier {
     required Profile recipient,
     String? message,
   }) async {
+    final targetUserId = recipient.effectiveUserId;
     final reqId = 'req_${DateTime.now().millisecondsSinceEpoch}';
     final request = ChatRequest(
       id: reqId,
@@ -148,7 +228,8 @@ class ChatProvider extends ChangeNotifier {
       senderName: senderName,
       senderRole: senderRole,
       senderCompany: senderCompany,
-      receiverId: recipient.id,
+      receiverId: targetUserId,
+      receiverProfileId: recipient.id != targetUserId ? recipient.id : null,
       receiverName: recipient.displayName,
       message: message,
       status: ChatRequestStatus.pending,
@@ -158,7 +239,14 @@ class ChatProvider extends ChangeNotifier {
     _requests.insert(0, request);
     notifyListeners();
 
-    // Firestore write with fast timeout, non-blocking
+    // 1. Send via backend ConnectionsService
+    try {
+      await _connectionsService.sendConnectionRequest(targetUserId, note: message);
+    } catch (e) {
+      debugPrint('Backend sendConnectionRequest notice: $e');
+    }
+
+    // 2. Firestore write with fast timeout, non-blocking
     try {
       await _chatService.sendChatRequestToFirestore(request);
     } catch (e) {
@@ -168,12 +256,12 @@ class ChatProvider extends ChangeNotifier {
 
     // Analytics
     AnalyticsService.instance.logChatRequestSent(
-      recipientId: recipient.id,
+      recipientId: targetUserId,
       recipientName: recipient.displayName,
     );
 
     // If user sends request to themselves (e.g. testing), immediately generate recipient notification
-    if (recipient.id == _currentUserId) {
+    if (targetUserId == _currentUserId || recipient.id == _currentUserId) {
       _checkForPendingRequestNotifications();
     } else {
       // Dispatch outgoing confirmation notification to sender
@@ -181,14 +269,14 @@ class ChatProvider extends ChangeNotifier {
         title: 'Chat Request Sent to ${recipient.displayName}',
         body: 'Your chat request was sent. You will be able to text once they accept.',
         type: NotificationType.chatRequest,
-        data: {'requestId': reqId, 'recipientId': recipient.id, 'isOutgoing': true},
+        data: {'requestId': reqId, 'recipientId': targetUserId, 'isOutgoing': true},
         showPush: true,
       );
     }
   }
 
   Future<ChatConversation?> acceptChatRequest(String requestId) async {
-    int index = _requests.indexWhere((r) => r.id == requestId);
+    int index = _requests.indexWhere((r) => r.id == requestId || r.backendRequestId == requestId);
     if (index == -1) {
       final fallbackReq = ChatRequest(
         id: requestId,
@@ -207,10 +295,21 @@ class ChatProvider extends ChangeNotifier {
     final updatedReq = req.copyWith(status: ChatRequestStatus.accepted);
     _requests[index] = updatedReq;
 
+    // 1. Sync accept to backend if it was a backend connection request
+    final backendId = req.backendRequestId ??
+        (req.id.startsWith('connect_') ? req.id.replaceFirst('connect_', '') : null);
+    if (backendId != null && backendId.isNotEmpty) {
+      try {
+        await _connectionsService.respondToRequest(backendId, accept: true);
+      } catch (e) {
+        debugPrint('Backend respondToRequest accept notice: $e');
+      }
+    }
+
     final convId = _getConversationId(req.senderId, req.receiverId);
 
     // Check if conversation exists locally
-    final convIndex = _conversations.indexWhere((c) => c.id == convId);
+    final convIndex = _conversations.indexWhere((c) => c.id == convId || c.participantId == req.senderId);
     final initialMessage = req.message?.isNotEmpty == true
         ? req.message!
         : 'Chat request accepted. You can now chat!';
@@ -278,14 +377,14 @@ class ChatProvider extends ChangeNotifier {
     );
 
     try {
-      return _conversations.firstWhere((c) => c.id == convId);
+      return _conversations.firstWhere((c) => c.id == convId || c.participantId == req.senderId);
     } catch (_) {
       return null;
     }
   }
 
   Future<void> declineChatRequest(String requestId) async {
-    int index = _requests.indexWhere((r) => r.id == requestId);
+    int index = _requests.indexWhere((r) => r.id == requestId || r.backendRequestId == requestId);
     if (index == -1) {
       final fallbackReq = ChatRequest(
         id: requestId,
@@ -298,6 +397,17 @@ class ChatProvider extends ChangeNotifier {
       );
       _requests.insert(0, fallbackReq);
       index = 0;
+    }
+
+    final req = _requests[index];
+    final backendId = req.backendRequestId ??
+        (req.id.startsWith('connect_') ? req.id.replaceFirst('connect_', '') : null);
+    if (backendId != null && backendId.isNotEmpty) {
+      try {
+        await _connectionsService.respondToRequest(backendId, accept: false);
+      } catch (e) {
+        debugPrint('Backend respondToRequest decline notice: $e');
+      }
     }
 
     _requests[index] = _requests[index].copyWith(status: ChatRequestStatus.declined);

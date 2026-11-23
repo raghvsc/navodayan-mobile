@@ -336,13 +336,13 @@ class _EventsScreenState extends State<EventsScreen> {
     return Container(
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: colors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -351,7 +351,7 @@ class _EventsScreenState extends State<EventsScreen> {
         children: [
           if (event.image != null && event.image!.isNotEmpty)
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               child: Image.network(
                 event.image!,
                 height: 180,
@@ -359,9 +359,7 @@ class _EventsScreenState extends State<EventsScreen> {
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) => _buildPlaceholderImage(),
               ),
-            )
-          else
-            _buildPlaceholderImage(),
+            ),
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -373,15 +371,16 @@ class _EventsScreenState extends State<EventsScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: colors.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
+                        color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDAE5F3),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         'UPCOMING',
                         style: TextStyle(
-                          color: colors.primary,
+                          color: isDark ? Colors.white : const Color(0xFF1C3A64),
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
+                          letterSpacing: 0.8,
                         ),
                       ),
                     ),
@@ -390,7 +389,7 @@ class _EventsScreenState extends State<EventsScreen> {
                       style: TextStyle(
                         color: colors.textSecondary,
                         fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -399,34 +398,35 @@ class _EventsScreenState extends State<EventsScreen> {
                 Text(
                   event.title,
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 19,
                     fontWeight: FontWeight.bold,
                     color: colors.textPrimary,
+                    letterSpacing: -0.2,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today_rounded, size: 16, color: colors.primary),
-                    const SizedBox(width: 8),
+                    const Text('🗓️', style: TextStyle(fontSize: 14)),
+                    const SizedBox(width: 6),
                     Text(
                       event.eventDate != null
-                          ? '${event.eventDate!.day}/${event.eventDate!.month}/${event.eventDate!.year}'
+                          ? '${event.eventDate!.day.toString().padLeft(2, '0')}/${event.eventDate!.month.toString().padLeft(2, '0')}/${event.eventDate!.year}'
                           : 'Date TBA',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12.5,
                         color: colors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(width: 16),
-                    Icon(Icons.location_on_outlined, size: 16, color: colors.secondary),
+                    const Text('📍', style: TextStyle(fontSize: 14)),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         event.location,
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 12.5,
                           color: colors.textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
@@ -441,22 +441,32 @@ class _EventsScreenState extends State<EventsScreen> {
                   Text(
                     event.description,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 13.5,
                       color: colors.textSecondary,
-                      height: 1.4,
+                      height: 1.45,
                     ),
                   ),
                 ],
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
                 ElevatedButton(
                   onPressed: _rsvpingId == event.id ? null : () => _handleRsvp(event.id),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isDark ? const Color(0xFF1E3A8A) : const Color(0xFF152544),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
                   child: _rsvpingId == event.id
                       ? const SizedBox(
-                          width: 20,
-                          height: 20,
+                          width: 18,
+                          height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Text('RSVP Now'),
+                      : const Text(
+                          'RSVP Now',
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+                        ),
                 ),
               ],
             ),
@@ -468,58 +478,85 @@ class _EventsScreenState extends State<EventsScreen> {
 
   Widget _buildEventCard(EventItem event) {
     final colors = AppColors.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: colors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDAE5F3),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'UPCOMING',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF1C3A64),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${event.rsvpCount} Attending',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              event.title,
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: colors.textPrimary,
+                letterSpacing: -0.2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Text('🗓️', style: TextStyle(fontSize: 13)),
+                const SizedBox(width: 5),
+                Text(
+                  event.eventDate != null
+                      ? '${event.eventDate!.day.toString().padLeft(2, '0')}/${event.eventDate!.month.toString().padLeft(2, '0')}/${event.eventDate!.year}'
+                      : 'Date TBA',
+                  style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                ),
+                const SizedBox(width: 14),
+                const Text('📍', style: TextStyle(fontSize: 13)),
+                const SizedBox(width: 5),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        event.title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: colors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Icon(Icons.calendar_today_rounded, size: 14, color: colors.primary),
-                          const SizedBox(width: 6),
-                          Text(
-                            event.eventDate != null
-                                ? '${event.eventDate!.day}/${event.eventDate!.month}/${event.eventDate!.year}'
-                                : 'Date TBA',
-                            style: TextStyle(fontSize: 12, color: colors.textSecondary),
-                          ),
-                          const SizedBox(width: 12),
-                          Icon(Icons.location_on_outlined, size: 14, color: colors.secondary),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              event.location,
-                              style: TextStyle(fontSize: 12, color: colors.textSecondary),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  child: Text(
+                    event.location,
+                    style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -528,31 +565,34 @@ class _EventsScreenState extends State<EventsScreen> {
               const SizedBox(height: 10),
               Text(
                 event.description,
-                style: TextStyle(fontSize: 13, color: colors.textSecondary, height: 1.3),
+                style: TextStyle(fontSize: 13, color: colors.textSecondary, height: 1.4),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
             const SizedBox(height: 14),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text(
-                  '${event.rsvpCount} Attending',
-                  style: TextStyle(fontSize: 12, color: colors.textSecondary, fontWeight: FontWeight.bold),
-                ),
-                OutlinedButton(
+                ElevatedButton(
                   onPressed: _rsvpingId == event.id ? null : () => _handleRsvp(event.id),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isDark ? const Color(0xFF1E3A8A) : const Color(0xFF152544),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
                   ),
                   child: _rsvpingId == event.id
                       ? const SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Text('RSVP'),
+                      : const Text(
+                          'RSVP Now',
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
+                        ),
                 ),
               ],
             ),

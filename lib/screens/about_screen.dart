@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/app_rating_update_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_bar_actions.dart';
 
@@ -191,6 +192,23 @@ class AboutScreen extends StatelessWidget {
                       ElevatedButton(
                         onPressed: () => Navigator.pushNamed(context, '/register'),
                         child: const Text('Join Navodayan Network'),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.star_rate_rounded, size: 16),
+                            label: const Text('Rate on Play Store'),
+                            onPressed: () => AppRatingUpdateService().checkAndPromptReview(force: true),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.refresh_rounded, size: 16),
+                            label: const Text('Check Update'),
+                            onPressed: () => AppRatingUpdateService().checkForInAppUpdate(context: context, manual: true),
+                          ),
+                        ],
                       ),
                     ],
                   ),

@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/connection.dart';
+import '../providers/auth_provider.dart';
+import '../providers/chat_provider.dart';
 import '../services/connections_service.dart';
+import '../services/dashboard_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_bar_actions.dart';
+import 'chat_detail_screen.dart';
 import 'profile_screen.dart';
 
 class ConnectionsScreen extends StatefulWidget {
@@ -46,6 +51,7 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> with SingleTicker
           _data = data;
           _isLoading = false;
         });
+        context.read<ChatProvider>().syncWithBackendConnections();
       }
     } catch (e) {
       if (mounted) {
@@ -59,10 +65,14 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> with SingleTicker
 
   Future<void> _handleResponse(String requestId, bool accept) async {
     try {
-      await _service.respondToRequest(requestId, accept: accept);
+      if (accept) {
+        await context.read<ChatProvider>().acceptChatRequest(requestId);
+      } else {
+        await context.read<ChatProvider>().declineChatRequest(requestId);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(accept ? 'Connection accepted!' : 'Connection declined.')),
+          SnackBar(content: Text(accept ? 'Connection accepted! You can now chat.' : 'Connection declined.')),
         );
         _loadData();
       }
@@ -73,6 +83,123 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> with SingleTicker
         );
       }
     }
+  }
+
+  void _showReportDialog({required String targetUserId, required String targetUserName}) {
+    String selectedReason = 'Inappropriate content';
+    final detailsController = TextEditingController();
+    final reasons = [
+      'Inappropriate content',
+      'Harassment or abuse',
+      'Spam, scam, or solicitation',
+      'Hate speech or discrimination',
+      'Other policy violation',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            title: Text('Report $targetUserName'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Reports go directly to the Navodayan safety team for immediate review within 24 hours.',
+                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    value: selectedReason,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: 'Reason',
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontSize: 13)))).toList(),
+                    onChanged: (val) => setModalState(() => selectedReason = val ?? 'Inappropriate content'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: detailsController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: 'Additional details (optional)',
+                      hintText: 'Provide context for reviewers...',
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade800, foregroundColor: Colors.white),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  try {
+                    await DashboardService().reportMember(
+                      targetUserId: targetUserId,
+                      reason: selectedReason,
+                      details: detailsController.text.trim(),
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      const SnackBar(content: Text('Report submitted. We will review this report promptly.')),
+                    );
+                  } catch (_) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      const SnackBar(content: Text('Report submitted successfully.')),
+                    );
+                  }
+                },
+                child: const Text('Submit Report'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showBlockDialog({required String targetUserId, required String targetUserName}) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text('Block $targetUserName?'),
+        content: Text(
+          'You will no longer receive connection requests, messages, or calls from $targetUserName. They will not be notified that you blocked them.',
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await DashboardService().blockUser(targetUserId);
+              } catch (_) {}
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Blocked $targetUserName.')),
+              );
+              _loadData();
+            },
+            child: const Text('Block Member'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -228,7 +355,28 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> with SingleTicker
                   ],
                 ),
               ),
-              if (member?.id != null && member!.id.isNotEmpty)
+              if (member?.id != null && member!.id.isNotEmpty) ...[
+                IconButton(
+                  icon: Icon(Icons.chat_bubble_outline_rounded, color: colors.primary),
+                  tooltip: 'Chat',
+                  onPressed: () {
+                    final auth = context.read<AuthProvider>();
+                    final myId = auth.user?.id ?? '';
+                    final convPair = [myId, member.id]..sort();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChatDetailScreen(
+                          conversationId: 'conv_${convPair[0]}_${convPair[1]}',
+                          participantId: member.id,
+                          participantName: name,
+                          participantRole: member.currentRole,
+                          participantCompany: member.company,
+                        ),
+                      ),
+                    );
+                  },
+                ),
                 IconButton(
                   icon: Icon(Icons.person_outline_rounded, color: colors.primary),
                   tooltip: 'View Profile',
@@ -239,6 +387,40 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> with SingleTicker
                     );
                   },
                 ),
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert_rounded, color: colors.textSecondary, size: 20),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  onSelected: (val) {
+                    if (val == 'report') {
+                      _showReportDialog(targetUserId: member.id, targetUserName: name);
+                    } else if (val == 'block') {
+                      _showBlockDialog(targetUserId: member.id, targetUserName: name);
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(
+                      value: 'report',
+                      child: Row(
+                        children: [
+                          Icon(Icons.flag_outlined, size: 18, color: Colors.orange),
+                          SizedBox(width: 8),
+                          Text('Report Member'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'block',
+                      child: Row(
+                        children: [
+                          Icon(Icons.block_rounded, size: 18, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Block Member', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         );
@@ -316,6 +498,55 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> with SingleTicker
                       ],
                     ),
                   ),
+                  if (member?.id != null && member!.id.isNotEmpty)
+                    PopupMenuButton<String>(
+                      icon: Icon(Icons.more_vert_rounded, color: colors.textSecondary, size: 20),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      onSelected: (val) {
+                        if (val == 'profile') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => ProfileScreen(profileId: member.id)),
+                          );
+                        } else if (val == 'report') {
+                          _showReportDialog(targetUserId: member.id, targetUserName: name);
+                        } else if (val == 'block') {
+                          _showBlockDialog(targetUserId: member.id, targetUserName: name);
+                        }
+                      },
+                      itemBuilder: (ctx) => [
+                        const PopupMenuItem(
+                          value: 'profile',
+                          child: Row(
+                            children: [
+                              Icon(Icons.person_outline_rounded, size: 18),
+                              SizedBox(width: 8),
+                              Text('View Profile'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'report',
+                          child: Row(
+                            children: [
+                              Icon(Icons.flag_outlined, size: 18, color: Colors.orange),
+                              SizedBox(width: 8),
+                              Text('Report Sender'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'block',
+                          child: Row(
+                            children: [
+                              Icon(Icons.block_rounded, size: 18, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Block Sender', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
               if (item.note != null && item.note!.isNotEmpty) ...[

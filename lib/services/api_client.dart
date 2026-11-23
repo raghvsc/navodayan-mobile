@@ -9,6 +9,7 @@ class ApiClient {
   final http.Client _client;
 
   static String? _authToken;
+  static VoidCallback? onSessionExpired;
 
   static void setAuthToken(String? token) {
     _authToken = token;
@@ -131,6 +132,11 @@ class ApiClient {
       final errorMsg = responseData['message']?.toString() ??
           responseData['error']?.toString() ??
           'Request failed with status ${response.statusCode}';
+      if (response.statusCode == 401 ||
+          errorMsg.toLowerCase().contains('invalid or expired token') ||
+          errorMsg.toLowerCase().contains('no token provided')) {
+        onSessionExpired?.call();
+      }
       throw Exception(errorMsg);
     }
 

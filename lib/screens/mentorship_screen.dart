@@ -195,24 +195,18 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Mentorship Header Card
+              // Mentorship Header Card (matches mentorship_redesigned/code.html)
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                        : [const Color(0xFF1E3A8A), const Color(0xFF172554)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(22),
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFF152A5C),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: colors.primary.withValues(alpha: isDark ? 0.25 : 0.15),
+                    color: Colors.white.withValues(alpha: 0.1),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
+                      color: const Color(0xFF152A5C).withValues(alpha: isDark ? 0.35 : 0.2),
                       blurRadius: 14,
                       offset: const Offset(0, 6),
                     ),
@@ -224,10 +218,10 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
+                        const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.school_outlined, size: 15, color: Color(0xFF93C5FD)),
+                            Icon(Icons.school, size: 16, color: Color(0xFF93C5FD)),
                             SizedBox(width: 6),
                             Text(
                               'Alumni Mentorship',
@@ -235,7 +229,7 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
                                 color: Color(0xFFDBEAFE),
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                letterSpacing: 0.4,
+                                letterSpacing: 0.3,
                               ),
                             ),
                           ],
@@ -243,15 +237,15 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
                         Text(
                           '1-on-1 Guidance',
                           style: TextStyle(
-                            color: Color(0xFF93C5FD),
+                            color: const Color(0xFF93C5FD).withValues(alpha: 0.9),
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            letterSpacing: 0.3,
+                            letterSpacing: 0.2,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
                     const Text(
                       'Navodayan Mentorship',
                       style: TextStyle(
@@ -262,25 +256,32 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
+                    const Text(
                       'Connect with senior alumni for career advice, competitive exam tips, and professional guidance.',
                       style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.white.withValues(alpha: 0.85),
+                        fontSize: 12.5,
+                        color: Color(0xFFDBEAFE),
                         height: 1.4,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               // Segmented Tabs: Browse Mentors / My Dashboard
               Container(
                 decoration: BoxDecoration(
                   color: colors.surface,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: colors.border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 padding: const EdgeInsets.all(4),
                 child: Row(
@@ -289,20 +290,20 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
                       child: GestureDetector(
                         onTap: () => setState(() => _selectedTab = 0),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: _selectedTab == 0 ? colors.primary : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
+                            color: _selectedTab == 0
+                                ? (isDark ? const Color(0xFF1E3A8A) : const Color(0xFF162A5C))
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
                             'Browse Mentors',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: _selectedTab == 0
-                                  ? (isDark ? const Color(0xFF0B1120) : Colors.white)
-                                  : colors.textSecondary,
+                              color: _selectedTab == 0 ? Colors.white : colors.textSecondary,
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                              fontSize: 13,
                             ),
                           ),
                         ),
@@ -319,20 +320,20 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
                           _fetchRequests();
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: _selectedTab == 1 ? colors.primary : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
+                            color: _selectedTab == 1
+                                ? (isDark ? const Color(0xFF1E3A8A) : const Color(0xFF162A5C))
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
                             'My Dashboard',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: _selectedTab == 1
-                                  ? (isDark ? const Color(0xFF0B1120) : Colors.white)
-                                  : colors.textSecondary,
+                              color: _selectedTab == 1 ? Colors.white : colors.textSecondary,
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                              fontSize: 13,
                             ),
                           ),
                         ),
@@ -357,6 +358,7 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
 
   Widget _buildBrowseMentorsView() {
     final colors = AppColors.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final filtered = _filteredMentors;
 
     return Column(
@@ -366,26 +368,33 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
         Container(
           decoration: BoxDecoration(
             color: colors.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: colors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 1),
+              ),
+            ],
           ),
           child: TextField(
             controller: _searchController,
             style: TextStyle(color: colors.textPrimary),
             decoration: InputDecoration(
               hintText: 'Search mentors by name, role, company...',
-              hintStyle: TextStyle(color: colors.textSecondary),
-              prefixIcon: Icon(Icons.search_rounded, color: colors.textSecondary),
+              hintStyle: TextStyle(color: colors.textSecondary, fontSize: 13),
+              prefixIcon: Icon(Icons.search_rounded, color: colors.textSecondary, size: 20),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
-                      icon: Icon(Icons.clear_rounded, color: colors.textSecondary),
+                      icon: Icon(Icons.clear_rounded, color: colors.textSecondary, size: 18),
                       onPressed: () => _searchController.clear(),
                     )
                   : null,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),
           ),
         ),
@@ -397,16 +406,54 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
               final isSelected = _selectedIndustry == ind;
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: FilterChip(
-                  label: Text(ind),
-                  selected: isSelected,
-                  onSelected: (_) => setState(() => _selectedIndustry = ind),
-                  selectedColor: colors.primary.withValues(alpha: 0.2),
-                  checkmarkColor: colors.primary,
-                  labelStyle: TextStyle(
-                    color: isSelected ? colors.primary : colors.textSecondary,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 12,
+                child: InkWell(
+                  onTap: () => setState(() => _selectedIndustry = ind),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? (isDark ? const Color(0xFF1E3A8A) : const Color(0xFFCCD5E4))
+                          : colors.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected
+                            ? Colors.transparent
+                            : colors.border,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 3,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isSelected) ...[
+                          Text(
+                            '✓ ',
+                            style: TextStyle(
+                              color: isDark ? Colors.white : const Color(0xFF132857),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                        Text(
+                          ind,
+                          style: TextStyle(
+                            color: isSelected
+                                ? (isDark ? Colors.white : const Color(0xFF132857))
+                                : colors.textPrimary,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -566,11 +613,18 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
     final initials = mentor.fullName.isNotEmpty ? mentor.fullName[0].toUpperCase() : 'N';
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: colors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -592,15 +646,20 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
               children: [
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: colors.primary,
-                  child: Text(
-                    initials,
-                    style: TextStyle(
-                      color: isDark ? const Color(0xFF0B1120) : Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
+                  backgroundColor: const Color(0xFF162955),
+                  backgroundImage: (mentor.imageUrl != null && mentor.imageUrl!.isNotEmpty)
+                      ? NetworkImage(mentor.imageUrl!)
+                      : null,
+                  child: (mentor.imageUrl == null || mentor.imageUrl!.isEmpty)
+                      ? Text(
+                          initials,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                          ),
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -609,15 +668,24 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
                     children: [
                       Text(
                         mentor.displayName,
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                      ),
-                      if (mentor.subtitle.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          mentor.subtitle,
-                          style: TextStyle(fontSize: 13, color: colors.textSecondary),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: colors.textPrimary,
+                          letterSpacing: -0.2,
                         ),
-                      ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        mentor.subtitle.isNotEmpty
+                            ? mentor.subtitle
+                            : (mentor.currentRole ?? 'Alumnus'),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -625,15 +693,15 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: colors.primary.withValues(alpha: 0.12),
+                      color: const Color(0xFF162A5C).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       mentor.industry!.toUpperCase(),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: colors.primary,
+                        color: Color(0xFF162A5C),
                       ),
                     ),
                   ),
@@ -641,51 +709,64 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
             ),
           ),
           if (mentor.bio != null && mentor.bio!.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Text(
               mentor.bio!,
-              style: TextStyle(fontSize: 13, color: colors.textSecondary, height: 1.3),
+              style: TextStyle(fontSize: 12.5, color: colors.textSecondary, height: 1.35),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ],
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              if (mentor.location != null && mentor.location!.isNotEmpty) ...[
-                Icon(Icons.location_on_outlined, size: 14, color: colors.textSecondary),
-                const SizedBox(width: 4),
-                Text(
-                  mentor.location!,
-                  style: TextStyle(fontSize: 12, color: colors.textSecondary),
-                ),
-                const SizedBox(width: 12),
+          if (mentor.schoolAndBatch.isNotEmpty || (mentor.location != null && mentor.location!.isNotEmpty)) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                if (mentor.schoolAndBatch.isNotEmpty) ...[
+                  const Text('🎓', style: TextStyle(fontSize: 13)),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      mentor.schoolAndBatch,
+                      style: TextStyle(fontSize: 11.5, color: colors.textSecondary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+                if (mentor.location != null && mentor.location!.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  const Text('📍', style: TextStyle(fontSize: 13)),
+                  const SizedBox(width: 4),
+                  Text(
+                    mentor.location!,
+                    style: TextStyle(fontSize: 11.5, color: colors.textSecondary),
+                  ),
+                ],
               ],
-              if (mentor.experience != null && mentor.experience!.isNotEmpty) ...[
-                const Icon(Icons.star_rounded, size: 16, color: Colors.amber),
-                const SizedBox(width: 4),
-                Text(
-                  mentor.experience!,
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: colors.textPrimary),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 16),
+            ),
+          ],
+          const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton.icon(
+            height: 42,
+            child: ElevatedButton(
               onPressed: () => _showRequestModal(mentor),
-              icon: const Icon(Icons.send_rounded, size: 16),
-              label: const Text(
-                'Request Mentorship',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: colors.primary,
-                foregroundColor: isDark ? const Color(0xFF0B1120) : Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                backgroundColor: isDark ? const Color(0xFF1E3A8A) : const Color(0xFF162A5B),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.send_rounded, size: 15),
+                  SizedBox(width: 8),
+                  Text(
+                    'Request Mentorship',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ],
               ),
             ),
           ),

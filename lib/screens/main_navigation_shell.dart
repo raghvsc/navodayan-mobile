@@ -5,17 +5,21 @@ import '../providers/chat_provider.dart';
 import '../providers/notification_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_bar_actions.dart';
+import 'care_screen.dart';
 import 'chats_screen.dart';
 import 'connections_screen.dart';
 import 'contributions_screen.dart';
 import 'coordinator_dashboard_screen.dart';
+import 'dashboard_screen.dart';
 import 'directory_screen.dart';
 import 'events_screen.dart';
+import 'help_screen.dart';
 import 'home_screen.dart';
 import 'mentorship_screen.dart';
 import 'notifications_screen.dart';
 import 'offerings_screen.dart';
 import 'profile_screen.dart';
+import '../services/app_rating_update_service.dart';
 
 class MainNavigationShell extends StatefulWidget {
   const MainNavigationShell({super.key});
@@ -26,6 +30,15 @@ class MainNavigationShell extends StatefulWidget {
 
 class _MainNavigationShellState extends State<MainNavigationShell> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppRatingUpdateService().checkForInAppUpdate(context: context);
+      AppRatingUpdateService().checkAndPromptReview();
+    });
+  }
 
   void _navigateToTab(int index) {
     setState(() {
@@ -222,6 +235,18 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   ),
                 ),
               ),
+              const SizedBox(height: 12),
+              _buildMenuTile(
+                icon: Icons.space_dashboard_rounded,
+                title: 'My Desk',
+                subtitle: 'Account status, JNV proof, batch stats & circles',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                  );
+                },
+              ),
               const SizedBox(height: 20),
             ] else ...[
               Container(
@@ -327,13 +352,25 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             const SizedBox(height: 20),
 
             Text(
-              'OPPORTUNITIES & CONTRIBUTIONS',
+              'OPPORTUNITIES & KNOWLEDGE',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.1,
                 color: colors.textSecondary,
               ),
+            ),
+            const SizedBox(height: 10),
+            _buildMenuTile(
+              icon: Icons.lightbulb_outline_rounded,
+              title: 'Navodayan CARE Sessions',
+              subtitle: 'Alumni-led sessions on exams, careers & skills',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CareScreen()),
+                );
+              },
             ),
             const SizedBox(height: 10),
             _buildMenuTile(
@@ -395,6 +432,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 letterSpacing: 1.1,
                 color: colors.textSecondary,
               ),
+            ),
+            const SizedBox(height: 10),
+            _buildMenuTile(
+              icon: Icons.help_outline_rounded,
+              title: 'Help & Guide',
+              subtitle: 'How to use Navodayan, profile, and roles',
+              onTap: () => Navigator.pushNamed(context, '/help'),
             ),
             const SizedBox(height: 10),
             _buildMenuTile(

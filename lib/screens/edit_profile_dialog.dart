@@ -35,6 +35,11 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
   late TextEditingController _bioController;
   late TextEditingController _skillsController;
   late bool _openToMentor;
+  late String _postingStatus;
+  late String _profileVisibility;
+  late String _emailVisibility;
+  late String _phoneVisibility;
+  late String _educationVisibility;
 
   Uint8List? _selectedImageBytes;
   String? _uploadedImageUrl;
@@ -57,6 +62,11 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     _bioController = TextEditingController(text: p.bio ?? '');
     _skillsController = TextEditingController(text: p.skills.map((s) => s.name).join(', '));
     _openToMentor = p.openToMentor;
+    _postingStatus = p.postingStatus ?? 'SCHOOL';
+    _profileVisibility = p.profileVisibility;
+    _emailVisibility = p.emailVisibility;
+    _phoneVisibility = p.phoneVisibility;
+    _educationVisibility = p.educationVisibility;
   }
 
   Future<void> _pickAndCropImage(ImageSource source) async {
@@ -200,6 +210,16 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     });
 
     try {
+      if (_openToMentor) {
+        if (_bioController.text.trim().isEmpty || _experienceController.text.trim().isEmpty) {
+          setState(() {
+            _errorMessage = 'Add your Bio and Experience before you can offer mentoring.';
+            _saving = false;
+          });
+          return;
+        }
+      }
+
       final rawSkills = _skillsController.text
           .split(',')
           .map((s) => s.trim())
@@ -216,6 +236,11 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
         'bio': _bioController.text.trim(),
         'openToMentor': _openToMentor,
         'skills': rawSkills,
+        'postingStatus': _postingStatus,
+        'profileVisibility': _profileVisibility,
+        'emailVisibility': _emailVisibility,
+        'phoneVisibility': _phoneVisibility,
+        'educationVisibility': _educationVisibility,
       };
 
       await _profileService.updateProfile(payload, token: auth.token!);
@@ -295,6 +320,33 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Admin restriction notice & readonly fields
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: colors.primary.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline_rounded, size: 18, color: colors.primary),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Name, JNV, and batch can only be changed by an admin.',
+                              style: TextStyle(fontSize: 12, color: colors.textPrimary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildReadonlyField('Full Name', widget.currentProfile.fullName, colors),
+                    const SizedBox(height: 8),
+                    _buildReadonlyField('JNV & Batch', widget.currentProfile.schoolAndBatch, colors),
+                    const SizedBox(height: 16),
+
                     // Profile Photo section
                     Center(
                       child: Column(
@@ -392,6 +444,20 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                       ],
                     ),
                     const SizedBox(height: 12),
+                    _buildDropdownField(
+                      label: 'Posting Status',
+                      value: _postingStatus,
+                      items: const [
+                        DropdownMenuItem(value: 'SCHOOL', child: Text('Posted at a JNV')),
+                        DropdownMenuItem(value: 'HQ', child: Text('NVS HQ / regional')),
+                        DropdownMenuItem(value: 'RETIRED', child: Text('Retired')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _postingStatus = val);
+                      },
+                      colors: colors,
+                    ),
+                    const SizedBox(height: 12),
                     _buildTextField('Industry / Domain', _industryController, 'e.g. Technology, Healthcare', colors),
                     const SizedBox(height: 12),
                     _buildTextField('Years of Experience', _experienceController, 'e.g. 5+ Years', colors),
@@ -400,6 +466,8 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                     const SizedBox(height: 12),
                     _buildTextField('Skills (comma-separated)', _skillsController, 'e.g. Flutter, React, Cloud, Finance', colors),
                     const SizedBox(height: 16),
+
+                    // Open to Mentoring
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
@@ -407,37 +475,147 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: colors.border),
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.school_rounded, color: colors.primary, size: 22),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Open to Mentoring',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: colors.textPrimary,
-                                  ),
+                          Row(
+                            children: [
+                              Icon(Icons.school_rounded, color: colors.primary, size: 22),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Open to Mentoring other Navodayans',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: colors.textPrimary,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Help students and alumni with guidance',
+                                      style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  'Help students and alumni with guidance',
-                                  style: TextStyle(fontSize: 12, color: colors.textSecondary),
-                                ),
-                              ],
+                              ),
+                              Switch(
+                                value: _openToMentor,
+                                activeThumbColor: colors.primary,
+                                activeTrackColor: colors.primary.withValues(alpha: 0.3),
+                                onChanged: (val) {
+                                  setState(() {
+                                    _openToMentor = val;
+                                    if (val && (_bioController.text.trim().isEmpty || _experienceController.text.trim().isEmpty)) {
+                                      _errorMessage = 'Add your Bio and Experience before you can offer mentoring.';
+                                    } else {
+                                      _errorMessage = null;
+                                    }
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                          if (_openToMentor && (_bioController.text.trim().isEmpty || _experienceController.text.trim().isEmpty)) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              'Add your Bio and Experience before you can offer mentoring.',
+                              style: TextStyle(fontSize: 12, color: colors.error, fontWeight: FontWeight.w500),
                             ),
-                          ),
-                          Switch(
-                            value: _openToMentor,
-                            activeThumbColor: colors.primary,
-                            activeTrackColor: colors.primary.withValues(alpha: 0.3),
-                            onChanged: (val) => setState(() => _openToMentor = val),
-                          ),
+                          ],
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Privacy & Contact Visibility Section
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Privacy & Contact Visibility',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Choose who can see your contact info on your profile. Admin and your JNV coordinators can still reach you for school work.',
+                      style: TextStyle(fontSize: 12, color: colors.textSecondary, height: 1.3),
+                    ),
+                    const SizedBox(height: 14),
+
+                    _buildDropdownField(
+                      label: 'Who can see my profile',
+                      value: _profileVisibility,
+                      items: const [
+                        DropdownMenuItem(value: 'PUBLIC', child: Text('Anyone on Navodayan')),
+                        DropdownMenuItem(value: 'JNV', child: Text('My JNV only')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _profileVisibility = val;
+                            if (val == 'JNV') {
+                              if (_emailVisibility == 'PUBLIC') _emailVisibility = 'JNV';
+                              if (_phoneVisibility == 'PUBLIC') _phoneVisibility = 'JNV';
+                              if (_educationVisibility == 'PUBLIC') _educationVisibility = 'JNV';
+                            }
+                          });
+                        }
+                      },
+                      colors: colors,
+                    ),
+                    const SizedBox(height: 12),
+
+                    _buildDropdownField(
+                      label: 'Who can see my email',
+                      value: _emailVisibility,
+                      items: [
+                        if (_profileVisibility != 'JNV')
+                          const DropdownMenuItem(value: 'PUBLIC', child: Text('Anyone on Navodayan')),
+                        const DropdownMenuItem(value: 'JNV', child: Text('My JNV only')),
+                        const DropdownMenuItem(value: 'NONE', child: Text('Nobody')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _emailVisibility = val);
+                      },
+                      colors: colors,
+                    ),
+                    const SizedBox(height: 12),
+
+                    _buildDropdownField(
+                      label: 'Who can see my phone',
+                      value: _phoneVisibility,
+                      items: [
+                        if (_profileVisibility != 'JNV')
+                          const DropdownMenuItem(value: 'PUBLIC', child: Text('Anyone on Navodayan')),
+                        const DropdownMenuItem(value: 'JNV', child: Text('My JNV only')),
+                        const DropdownMenuItem(value: 'NONE', child: Text('Nobody')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _phoneVisibility = val);
+                      },
+                      colors: colors,
+                    ),
+                    const SizedBox(height: 12),
+
+                    _buildDropdownField(
+                      label: 'Who can see my highest qualification',
+                      value: _educationVisibility,
+                      items: [
+                        if (_profileVisibility != 'JNV')
+                          const DropdownMenuItem(value: 'PUBLIC', child: Text('Anyone on Navodayan')),
+                        const DropdownMenuItem(value: 'JNV', child: Text('My JNV only')),
+                        const DropdownMenuItem(value: 'NONE', child: Text('Nobody')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _educationVisibility = val);
+                      },
+                      colors: colors,
                     ),
                   ],
                 ),
@@ -511,6 +689,79 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReadonlyField(String label, String value, ThemePalette colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.textSecondary),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: colors.background.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: colors.border.withValues(alpha: 0.6)),
+          ),
+          child: Text(
+            value.isNotEmpty ? value : 'Not set',
+            style: TextStyle(fontSize: 14, color: colors.textPrimary.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdownField({
+    required String label,
+    required String value,
+    required List<DropdownMenuItem<String>> items,
+    required ValueChanged<String?> onChanged,
+    required ThemePalette colors,
+  }) {
+    // Ensure value is present in items
+    final hasMatching = items.any((item) => item.value == value);
+    final selectedValue = hasMatching ? value : (items.isNotEmpty ? items.first.value : null);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.textSecondary),
+        ),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          value: selectedValue,
+          items: items,
+          onChanged: onChanged,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: colors.background,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: colors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: colors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: colors.primary, width: 1.5),
+            ),
+          ),
+          dropdownColor: colors.surface,
+          style: TextStyle(color: colors.textPrimary, fontSize: 14),
         ),
       ],
     );

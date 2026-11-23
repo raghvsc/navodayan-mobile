@@ -18,11 +18,13 @@ enum ChatRequestStatus {
 
 class ChatRequest {
   final String id;
+  final String? backendRequestId;
   final String senderId;
   final String senderName;
   final String? senderRole;
   final String? senderCompany;
   final String receiverId;
+  final String? receiverProfileId;
   final String receiverName;
   final String? message;
   final ChatRequestStatus status;
@@ -30,11 +32,13 @@ class ChatRequest {
 
   ChatRequest({
     required this.id,
+    this.backendRequestId,
     required this.senderId,
     required this.senderName,
     this.senderRole,
     this.senderCompany,
     required this.receiverId,
+    this.receiverProfileId,
     required this.receiverName,
     this.message,
     this.status = ChatRequestStatus.pending,
@@ -43,11 +47,13 @@ class ChatRequest {
 
   ChatRequest copyWith({
     String? id,
+    String? backendRequestId,
     String? senderId,
     String? senderName,
     String? senderRole,
     String? senderCompany,
     String? receiverId,
+    String? receiverProfileId,
     String? receiverName,
     String? message,
     ChatRequestStatus? status,
@@ -55,11 +61,13 @@ class ChatRequest {
   }) {
     return ChatRequest(
       id: id ?? this.id,
+      backendRequestId: backendRequestId ?? this.backendRequestId,
       senderId: senderId ?? this.senderId,
       senderName: senderName ?? this.senderName,
       senderRole: senderRole ?? this.senderRole,
       senderCompany: senderCompany ?? this.senderCompany,
       receiverId: receiverId ?? this.receiverId,
+      receiverProfileId: receiverProfileId ?? this.receiverProfileId,
       receiverName: receiverName ?? this.receiverName,
       message: message ?? this.message,
       status: status ?? this.status,
@@ -75,11 +83,13 @@ class ChatRequest {
 
     return ChatRequest(
       id: json['id']?.toString() ?? '',
+      backendRequestId: json['backendRequestId']?.toString(),
       senderId: json['senderId']?.toString() ?? '',
       senderName: json['senderName']?.toString() ?? 'Navodayan Member',
       senderRole: json['senderRole']?.toString(),
       senderCompany: json['senderCompany']?.toString(),
       receiverId: json['receiverId']?.toString() ?? '',
+      receiverProfileId: json['receiverProfileId']?.toString(),
       receiverName: json['receiverName']?.toString() ?? 'Navodayan Member',
       message: json['message']?.toString(),
       status: parsedStatus,
@@ -90,16 +100,22 @@ class ChatRequest {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      if (backendRequestId != null) 'backendRequestId': backendRequestId,
       'senderId': senderId,
       'senderName': senderName,
       if (senderRole != null) 'senderRole': senderRole,
       if (senderCompany != null) 'senderCompany': senderCompany,
       'receiverId': receiverId,
+      if (receiverProfileId != null) 'receiverProfileId': receiverProfileId,
       'receiverName': receiverName,
       if (message != null) 'message': message,
       'status': status.name,
       'createdAt': createdAt.toIso8601String(),
-      'participants': [senderId, receiverId],
+      'participants': [
+        senderId,
+        receiverId,
+        if (receiverProfileId != null && receiverProfileId!.isNotEmpty) receiverProfileId,
+      ],
     };
   }
 }

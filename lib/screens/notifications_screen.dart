@@ -263,7 +263,12 @@ class NotificationsScreen extends StatelessWidget {
     ChatRequest? matchingReq;
     if (requestId != null && requestId.isNotEmpty) {
       try {
-        matchingReq = chatProvider.requests.firstWhere((r) => r.id == requestId);
+        final bId = item.data?['backendRequestId']?.toString();
+        matchingReq = chatProvider.requests.firstWhere(
+          (r) =>
+              r.id == requestId ||
+              (bId != null && (r.id == bId || r.backendRequestId == bId || r.id == 'connect_$bId')),
+        );
       } catch (_) {
         matchingReq = null;
       }

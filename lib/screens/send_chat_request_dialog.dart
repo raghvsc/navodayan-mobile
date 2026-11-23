@@ -49,7 +49,7 @@ class _SendChatRequestDialogState extends State<SendChatRequestDialog> {
         recipient: widget.recipient,
         message: _messageController.text.trim(),
       ).timeout(
-        const Duration(seconds: 3),
+        const Duration(seconds: 8),
         onTimeout: () {
           debugPrint('sendChatRequest completed with local/offline fallback');
         },

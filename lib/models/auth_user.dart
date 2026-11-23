@@ -123,6 +123,7 @@ class AuthUser {
   bool get isCoordinator => role?.toUpperCase() == 'COORDINATOR';
   bool get isApproved =>
       (approvalStatus ?? profile?.approvalStatus)?.toUpperCase() == 'APPROVED';
+  bool get jnvVerified => profile?.jnvVerified ?? false;
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(

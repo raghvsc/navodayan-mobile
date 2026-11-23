@@ -45,21 +45,21 @@ class ThemePalette {
 }
 
 class AppColors {
-  // Static Light Tokens for fallbacks
-  static const Color primary = Color(0xFF162D59); // Deep Navodayan Navy
-  static const Color primaryLight = Color(0xFF22457E);
-  static const Color secondary = Color(0xFFF59E0B); // Warm Saffron Gold
+  // Static Light Tokens harmonized with Navodaya Alumni Connect Design System
+  static const Color primary = Color(0xFF0F294A); // Primary Navy (#0F294A / #0B2545)
+  static const Color primaryLight = Color(0xFF1E3A8A); // Tertiary Deep Indigo
+  static const Color secondary = Color(0xFFD97706); // Warm Ochre / Saffron Gold (#D97706)
   static const Color accent = Color(0xFFEA580C); // Sunrise Amber
 
-  static const Color background = Color(0xFFF8FAFC);
-  static const Color surface = Color(0xFFFFFFFF);
+  static const Color background = Color(0xFFF8FAFC); // Canvas Base Slate 50
+  static const Color surface = Color(0xFFFFFFFF); // Card & Sheet Surface Pure White
   static const Color cardBg = Color(0xFFFFFFFF);
 
-  static const Color textPrimary = Color(0xFF0F172A);
-  static const Color textSecondary = Color(0xFF64748B);
+  static const Color textPrimary = Color(0xFF0F172A); // Neutral Slate-Black
+  static const Color textSecondary = Color(0xFF64748B); // Slate Muted
   static const Color textDark = Color(0xFF1E293B);
 
-  static const Color border = Color(0xFFE2E8F0);
+  static const Color border = Color(0xFFE2E8F0); // Border Subtle Slate 200
   static const Color error = Color(0xFFDC2626);
   static const Color errorBg = Color(0xFFFEF2F2);
   static const Color success = Color(0xFF16A34A);
@@ -68,14 +68,31 @@ class AppColors {
   static const Color badgeBg = Color(0xFFFEF3C7);
   static const Color badgeText = Color(0xFFB45309);
 
+  // JNV House Colors
+  static const Color aravaliText = Color(0xFF1D4ED8);
+  static const Color aravaliBg = Color(0xFFEFF6FF);
+  static const Color aravaliBorder = Color(0xFFBFDBFE);
+
+  static const Color nilgiriText = Color(0xFF15803D);
+  static const Color nilgiriBg = Color(0xFFF0FDF4);
+  static const Color nilgiriBorder = Color(0xFFBBF7D0);
+
+  static const Color shivalikText = Color(0xFFB91C1C);
+  static const Color shivalikBg = Color(0xFFFEF2F2);
+  static const Color shivalikBorder = Color(0xFFFECACA);
+
+  static const Color udaygiriText = Color(0xFFB45309);
+  static const Color udaygiriBg = Color(0xFFFFFBEB);
+  static const Color udaygiriBorder = Color(0xFFFDE68A);
+
   static const LinearGradient brandGradient = LinearGradient(
-    colors: [Color(0xFF162D59), Color(0xFF1E3A8A)],
+    colors: [Color(0xFF0B2545), Color(0xFF1E3A8A)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient goldGradient = LinearGradient(
-    colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
+    colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -116,9 +133,9 @@ class AppColors {
     }
 
     return const ThemePalette(
-      primary: Color(0xFF162D59), // Deep Navodayan Navy
-      primaryLight: Color(0xFF22457E),
-      secondary: Color(0xFFF59E0B), // Warm Saffron Gold
+      primary: Color(0xFF0F294A), // Primary Navy (#0F294A / #0B2545)
+      primaryLight: Color(0xFF1E3A8A),
+      secondary: Color(0xFFD97706), // Warm Saffron / Amber Gold
       accent: Color(0xFFEA580C), // Sunrise Amber
       background: Color(0xFFF8FAFC), // Pure off-white
       surface: Color(0xFFFFFFFF),
@@ -134,12 +151,12 @@ class AppColors {
       badgeBg: Color(0xFFFEF3C7),
       badgeText: Color(0xFFB45309),
       brandGradient: LinearGradient(
-        colors: [Color(0xFF0E1C38), Color(0xFF162D59), Color(0xFF1F3A66)],
+        colors: [Color(0xFF0B2545), Color(0xFF0F294A), Color(0xFF1E3A8A)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
       goldGradient: LinearGradient(
-        colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
+        colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
@@ -154,11 +171,11 @@ class AppTheme {
       brightness: Brightness.light,
       scaffoldBackgroundColor: const Color(0xFFF8FAFC),
       colorScheme: const ColorScheme.light(
-        primary: Color(0xFF162D59),
+        primary: Color(0xFF0F294A),
         onPrimary: Colors.white,
-        secondary: Color(0xFFF59E0B),
+        secondary: Color(0xFFD97706),
         onSecondary: Colors.white,
-        tertiary: Color(0xFFEA580C),
+        tertiary: Color(0xFF1E3A8A),
         surface: Color(0xFFFFFFFF),
         onSurface: Color(0xFF0F172A),
         outline: Color(0xFFE2E8F0),

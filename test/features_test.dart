@@ -3,8 +3,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:navodayan/models/chat_models.dart';
-import 'package:navodayan/models/notification_item.dart';
 import 'package:navodayan/models/profile.dart';
 import 'package:navodayan/models/school.dart';
 import 'package:navodayan/providers/auth_provider.dart';
@@ -320,6 +318,8 @@ void main() {
       expect(themeProvider.themeMode, ThemeMode.system);
 
       // Tap Dark Mode
+      await tester.ensureVisible(find.text('Dark Mode'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Dark Mode'));
       await tester.pumpAndSettle();
 
@@ -327,8 +327,8 @@ void main() {
     });
   });
 
-  group('HomeScreen Stats & Spotlight Tests', () {
-    testWidgets('HomeScreen renders Community stats and Spotlight section', (WidgetTester tester) async {
+  group('HomeScreen Stats Tests', () {
+    testWidgets('HomeScreen renders Community stats and spotlight is removed', (WidgetTester tester) async {
       await tester.pumpWidget(createTestWidget(const HomeScreen()));
       await tester.pumpAndSettle();
 
@@ -337,8 +337,8 @@ void main() {
       expect(find.text('JNV Schools'), findsOneWidget);
       expect(find.text('Countries'), findsOneWidget);
 
-      // Check spotlight title
-      expect(find.text('Navodayans in the spotlight'), findsOneWidget);
+      // Verify spotlight section is completely removed
+      expect(find.text('Navodayans in the spotlight'), findsNothing);
     });
   });
 

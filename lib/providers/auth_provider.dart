@@ -16,6 +16,9 @@ class AuthProvider extends ChangeNotifier {
   bool _loading = true;
 
   AuthProvider({ApiClient? api}) : _api = api ?? ApiClient() {
+    ApiClient.onSessionExpired = () {
+      logout();
+    };
     _init();
   }
 
@@ -94,6 +97,13 @@ class AuthProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error fetching /auth/me: $e');
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('invalid or expired token') ||
+          errorStr.contains('unauthorized') ||
+          errorStr.contains('401') ||
+          errorStr.contains('no token provided')) {
+        await logout();
+      }
     }
   }
 

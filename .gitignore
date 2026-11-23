@@ -43,8 +43,12 @@ migrate_working_dir/
 /android/app/debug
 /android/app/profile
 /android/app/release
+# Keystore & build artifacts
 *.keystore
 *.jks
+*.aab
+*.apk
+*keystore_credentials.txt
 
 # Secrets & Environment
 .env

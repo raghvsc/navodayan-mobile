@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/chat_models.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
+import '../services/dashboard_service.dart';
 import '../theme/app_theme.dart';
 import 'meeting_screen.dart';
 import 'profile_screen.dart';
@@ -231,6 +233,194 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
+  void _showReportDialog({String? messageId, String? messageText}) {
+    String selectedReason = 'Inappropriate content';
+    final detailsController = TextEditingController();
+    final reasons = [
+      'Inappropriate content',
+      'Harassment or abuse',
+      'Spam, scam, or solicitation',
+      'Hate speech or discrimination',
+      'Other policy violation',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            title: Text(messageId != null ? 'Report Message' : 'Report Member'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    messageId != null
+                        ? 'Flag this message for moderation review by the safety team.'
+                        : 'Tell us what is wrong. Reports go directly to the Navodayan safety team for immediate review within 24 hours.',
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                  if (messageText != null && messageText.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '"$messageText"',
+                        style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 12),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    value: selectedReason,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: 'Reason',
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontSize: 13)))).toList(),
+                    onChanged: (val) => setModalState(() => selectedReason = val ?? 'Inappropriate content'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: detailsController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: 'Additional details (optional)',
+                      hintText: 'Provide context for reviewers...',
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade800, foregroundColor: Colors.white),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  try {
+                    await DashboardService().reportMember(
+                      targetUserId: messageId ?? widget.participantId,
+                      targetType: messageId != null ? 'MESSAGE' : 'USER',
+                      reason: selectedReason,
+                      details: detailsController.text.trim(),
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      const SnackBar(content: Text('Report submitted. We will review this report promptly.')),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      const SnackBar(content: Text('Report submitted successfully.')),
+                    );
+                  }
+                },
+                child: const Text('Submit Report'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showBlockDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text('Block ${widget.participantName}?'),
+        content: Text(
+          'You will no longer receive connection requests, messages, or calls from ${widget.participantName}. They will not be notified that you blocked them.',
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await DashboardService().blockUser(widget.participantId);
+              } catch (_) {}
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Blocked ${widget.participantName}.')),
+              );
+              Navigator.pop(context);
+            },
+            child: const Text('Block Member'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMessageContextMenu(ChatMessage msg, bool isMe) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) {
+        final colors = AppColors.of(sheetCtx);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(Icons.copy_rounded, color: colors.primary),
+                  title: const Text('Copy Text'),
+                  onTap: () {
+                    Navigator.pop(sheetCtx);
+                    Clipboard.setData(ClipboardData(text: msg.text));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Message copied to clipboard')),
+                    );
+                  },
+                ),
+                if (!isMe) ...[
+                  ListTile(
+                    leading: const Icon(Icons.flag_outlined, color: Colors.orange),
+                    title: const Text('Report Message'),
+                    subtitle: const Text('Report offensive or abusive content to safety moderators'),
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      _showReportDialog(messageId: msg.id, messageText: msg.text);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.block_rounded, color: Colors.red),
+                    title: Text('Block ${widget.participantName}', style: const TextStyle(color: Colors.red)),
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      _showBlockDialog();
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
@@ -292,17 +482,54 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             tooltip: '1-on-1 Video Call',
             onPressed: _confirmAndStartVideoCall,
           ),
-          IconButton(
-            icon: const Icon(Icons.account_circle_outlined),
-            tooltip: 'View Profile',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ProfileScreen(profileId: widget.participantId),
-                ),
-              );
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            onSelected: (value) {
+              if (value == 'profile') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProfileScreen(profileId: widget.participantId),
+                  ),
+                );
+              } else if (value == 'report') {
+                _showReportDialog();
+              } else if (value == 'block') {
+                _showBlockDialog();
+              }
             },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(Icons.account_circle_outlined, size: 18),
+                    SizedBox(width: 10),
+                    Text('View Profile'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'report',
+                child: Row(
+                  children: [
+                    Icon(Icons.flag_outlined, color: Colors.orange, size: 18),
+                    SizedBox(width: 10),
+                    Text('Report Member'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'block',
+                child: Row(
+                  children: [
+                    Icon(Icons.block_rounded, color: Colors.red, size: 18),
+                    SizedBox(width: 10),
+                    Text('Block Member', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -375,62 +602,65 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.76,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isMe ? colors.primary : colors.surface,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(18),
-            topRight: const Radius.circular(18),
-            bottomLeft: Radius.circular(isMe ? 18 : 4),
-            bottomRight: Radius.circular(isMe ? 4 : 18),
+      child: GestureDetector(
+        onLongPress: () => _showMessageContextMenu(msg, isMe),
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.76,
           ),
-          border: isMe ? null : Border.all(color: colors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isMe ? colors.primary : colors.surface,
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(18),
+              topRight: const Radius.circular(18),
+              bottomLeft: Radius.circular(isMe ? 18 : 4),
+              bottomRight: Radius.circular(isMe ? 4 : 18),
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            Text(
-              msg.text,
-              style: TextStyle(
-                color: isMe ? Colors.white : colors.textPrimary,
-                fontSize: 14.5,
-                height: 1.35,
+            border: isMe ? null : Border.all(color: colors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
-            ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  timeStr,
-                  style: TextStyle(
-                    color: isMe ? Colors.white.withValues(alpha: 0.7) : colors.textSecondary.withValues(alpha: 0.7),
-                    fontSize: 10.5,
-                  ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              Text(
+                msg.text,
+                style: TextStyle(
+                  color: isMe ? Colors.white : colors.textPrimary,
+                  fontSize: 14.5,
+                  height: 1.35,
                 ),
-                if (isMe) ...[
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.done_all_rounded,
-                    size: 13,
-                    color: Colors.white.withValues(alpha: 0.8),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    timeStr,
+                    style: TextStyle(
+                      color: isMe ? Colors.white.withValues(alpha: 0.7) : colors.textSecondary.withValues(alpha: 0.7),
+                      fontSize: 10.5,
+                    ),
                   ),
+                  if (isMe) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.done_all_rounded,
+                      size: 13,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

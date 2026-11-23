@@ -1,0 +1,107 @@
+name: Mobile bug
+description: Report a problem found while testing the Navodayan app
+title: "[Android/iOS] Short summary"
+labels: ["needs-repro"]
+body:
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Android
+        - iOS
+        - Both
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: Example — Pixel 7, Samsung A54, iPhone 13
+      placeholder: Pixel 7
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS version
+      description: Example — Android 14, iOS 17.5
+      placeholder: Android 14
+    validations:
+      required: true
+
+  - type: input
+    id: app_version
+    attributes:
+      label: App build / version
+      description: Version shown in the app, Play Tester build, or Expo update id
+      placeholder: 1.0.0 (build 12)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Blocker — crash / cannot login / main flow broken
+        - High — major feature broken, workaround hard
+        - Medium — feature issue with workaround
+        - Low — polish, text, minor UI
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps from a fresh open of the app if possible
+      placeholder: |
+        1. Open app
+        2. Tap Login
+        3. Enter email and password
+        4. Tap Continue
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      placeholder: What should happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+      placeholder: What happened instead
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often
+      options:
+        - Always
+        - Sometimes
+        - Once
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshot / recording
+      description: Paste image, link, or note if you will send it on WhatsApp
+      placeholder: Attached screenshot / sent on WhatsApp
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Extra notes
+      description: Account type used, network (wifi/mobile), anything else useful

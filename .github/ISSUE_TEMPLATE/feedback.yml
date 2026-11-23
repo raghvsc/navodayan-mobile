@@ -1,0 +1,32 @@
+name: Testing feedback
+description: Suggestion or unclear flow (not a clear bug)
+title: "[Feedback] Short summary"
+labels: ["feedback"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Login / register
+        - Directory
+        - Profile
+        - Events / CARE
+        - Notifications
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What did you notice
+      placeholder: Describe the flow or idea
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggestion (optional)
+      placeholder: What would make this clearer or better

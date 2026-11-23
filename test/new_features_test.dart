@@ -5,6 +5,7 @@ import 'package:navodayan/models/connection.dart';
 import 'package:navodayan/models/contribution.dart';
 import 'package:navodayan/models/coordinator.dart';
 import 'package:navodayan/models/offering.dart';
+import 'package:navodayan/models/profile.dart';
 import 'package:navodayan/providers/auth_provider.dart';
 import 'package:navodayan/providers/chat_provider.dart';
 import 'package:navodayan/providers/notification_provider.dart';
@@ -254,6 +255,86 @@ void main() {
 
       expect(find.text('Coordinator Dashboard'), findsOneWidget);
       expect(find.text('Submit Feedback'), findsOneWidget);
+    });
+
+    test('Profile.fromJson gracefully handles coordinator member and approval payload variations', () {
+      final memberJson = {
+        'id': 'member-uuid-1',
+        'userId': 'user-uuid-1',
+        'fullName': 'Aarav Sharma',
+        'email': 'aarav@navodaya.org',
+        'phone': '+91 9876543210',
+        'role': 'ALUMNI',
+        'batchYear': 2012,
+        'jnvSchool': 'Lucknow',
+        'company': 'Google',
+        'currentRole': 'Staff Engineer',
+        'location': 'Bengaluru',
+      };
+
+      final profile = Profile.fromJson(memberJson);
+      expect(profile.id, 'member-uuid-1');
+      expect(profile.userId, 'user-uuid-1');
+      expect(profile.effectiveUserId, 'user-uuid-1');
+      expect(profile.displayName, 'Aarav Sharma');
+      expect(profile.currentRole, 'Staff Engineer');
+      expect(profile.company, 'Google');
+      expect(profile.location, 'Bengaluru');
+      expect(profile.batch?.startYear, 2012);
+
+      final applicantJson = {
+        'id': 'applicant-uuid-2',
+        'name': 'Priya Patel',
+        'email': 'priya@gmail.com',
+        'role': 'ALUMNI',
+        'status': 'PENDING',
+        'profile': {
+          'id': 'prof-uuid-2',
+          'fullName': 'Priya Patel',
+          'city': 'Varanasi',
+        },
+      };
+
+      final applicantProfile = Profile.fromJson(applicantJson);
+      expect(applicantProfile.id, 'prof-uuid-2');
+      expect(applicantProfile.displayName, 'Priya Patel');
+      expect(applicantProfile.location, 'Varanasi');
+      expect(applicantProfile.approvalStatus, 'PENDING');
+    });
+
+    testWidgets('CoordinatorDashboardScreen renders Members and Approvals tabs with initialTabIndex', (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({
+        AuthProvider.tokenKey: 'test_token',
+        AuthProvider.userKey: jsonEncode({
+          'id': 'coord-user-1',
+          'email': 'coord@navodaya.org',
+          'role': 'COORDINATOR',
+          'approvalStatus': 'APPROVED',
+          'profile': {'fullName': 'Coordinator User'}
+        }),
+      });
+
+      // Test Members tab (initialTabIndex: 1)
+      await tester.pumpWidget(createTestWidget(const CoordinatorDashboardScreen(
+        key: ValueKey('members_screen'),
+        initialTabIndex: 1,
+      )));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Members in your assignment'), findsOneWidget);
+
+      // Test Approvals tab (initialTabIndex: 2)
+      await tester.pumpWidget(createTestWidget(const CoordinatorDashboardScreen(
+        key: ValueKey('approvals_screen'),
+        initialTabIndex: 2,
+      )));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('No pending approvals').evaluate().isNotEmpty ||
+            find.text('Coordinator Scope Assignment').evaluate().isNotEmpty,
+        isTrue,
+      );
     });
   });
 }

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/coordinator.dart';
+import '../models/profile.dart';
 import '../providers/auth_provider.dart';
 import '../services/coordinator_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/coordinator_contributions_view.dart';
 import '../widgets/app_bar_actions.dart';
+import 'profile_screen.dart';
 
 class CoordinatorDashboardScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -41,6 +44,14 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
       initialIndex: widget.initialTabIndex.clamp(0, 6),
     );
     _loadAll();
+  }
+
+  @override
+  void didUpdateWidget(covariant CoordinatorDashboardScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialTabIndex != widget.initialTabIndex) {
+      _tabController.animateTo(widget.initialTabIndex.clamp(0, 6));
+    }
   }
 
   @override
@@ -702,6 +713,509 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     );
   }
 
+  // --- MEMBER & APPROVAL DETAILS / PROFILE HELPERS ---
+
+  void _openMemberProfile(Map<String, dynamic> item) {
+    final profile = Profile.fromJson(item);
+    final profileId = item['profileId']?.toString() ??
+        (item['profile'] is Map ? item['profile']['id']?.toString() : null) ??
+        item['id']?.toString() ??
+        profile.id;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProfileScreen(
+          profileId: profileId.isNotEmpty ? profileId : null,
+          initialProfile: profile,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _safeLaunch(String uriString) async {
+    final uri = Uri.tryParse(uriString);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  Widget _buildInfoTile(
+    ThemePalette colors, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    Widget? trailing,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: colors.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.border.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: colors.textSecondary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontSize: 11, color: colors.textSecondary)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.textPrimary)),
+              ],
+            ),
+          ),
+          if (trailing != null) trailing,
+        ],
+      ),
+    );
+  }
+
+  void _showMemberDetailsSheet(BuildContext context, Map<String, dynamic> m) {
+    final colors = AppColors.of(context);
+    final name = m['fullName'] ?? m['name'] ?? m['email'] ?? 'Member';
+    final email = m['email']?.toString() ?? '';
+    final phone = m['phone']?.toString() ?? m['mobile']?.toString() ?? '';
+    final batch = m['batchYear']?.toString() ?? m['batch']?.toString() ?? '';
+    final role = m['role']?.toString() ?? 'Alumni';
+    final school = (m['jnv'] is Map ? m['jnv']['name'] : null) ??
+        (m['school'] is Map ? m['school']['name'] : null) ??
+        m['jnvSchool']?.toString() ??
+        m['jnvName']?.toString() ??
+        '';
+    final currentRole = m['currentRole']?.toString() ?? m['designation']?.toString() ?? '';
+    final company = m['company']?.toString() ?? m['organization']?.toString() ?? '';
+    final location = m['location']?.toString() ?? m['city']?.toString() ?? m['state']?.toString() ?? '';
+    final bio = m['bio']?.toString() ?? (m['details'] is Map ? m['details']['bio']?.toString() : null) ?? '';
+    final status = m['status']?.toString() ?? m['approvalStatus']?.toString() ?? 'ACTIVE';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: colors.border),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: colors.primary,
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : 'M',
+                      style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colors.textPrimary),
+                        ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: colors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(role, style: TextStyle(fontSize: 11, color: colors.primary, fontWeight: FontWeight.bold)),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: (status.toUpperCase() == 'APPROVED' || status.toUpperCase() == 'ACTIVE')
+                                    ? Colors.green.withValues(alpha: 0.12)
+                                    : Colors.orange.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                status,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: (status.toUpperCase() == 'APPROVED' || status.toUpperCase() == 'ACTIVE')
+                                      ? Colors.green
+                                      : Colors.orange.shade800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _openMemberProfile(m);
+                },
+                icon: const Icon(Icons.person_rounded, size: 18),
+                label: const Text('Open Full Profile'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Divider(height: 1, color: colors.border),
+              const SizedBox(height: 12),
+              Text(
+                'Member Information',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textSecondary),
+              ),
+              const SizedBox(height: 8),
+              if (email.isNotEmpty)
+                _buildInfoTile(
+                  colors,
+                  icon: Icons.email_outlined,
+                  title: 'Email',
+                  subtitle: email,
+                  trailing: IconButton(
+                    icon: Icon(Icons.mail_outline_rounded, size: 20, color: colors.primary),
+                    onPressed: () => _safeLaunch('mailto:$email'),
+                  ),
+                ),
+              if (phone.isNotEmpty)
+                _buildInfoTile(
+                  colors,
+                  icon: Icons.phone_outlined,
+                  title: 'Phone',
+                  subtitle: phone,
+                  trailing: IconButton(
+                    icon: const Icon(Icons.call_outlined, size: 20, color: Colors.green),
+                    onPressed: () => _safeLaunch('tel:$phone'),
+                  ),
+                ),
+              if (school.isNotEmpty || batch.isNotEmpty)
+                _buildInfoTile(
+                  colors,
+                  icon: Icons.school_outlined,
+                  title: 'Education',
+                  subtitle: [
+                    if (school.isNotEmpty) (school.startsWith('JNV') ? school : 'JNV $school'),
+                    if (batch.isNotEmpty) 'Batch $batch',
+                  ].join(' • '),
+                ),
+              if (currentRole.isNotEmpty || company.isNotEmpty)
+                _buildInfoTile(
+                  colors,
+                  icon: Icons.work_outline_rounded,
+                  title: 'Profession',
+                  subtitle: [
+                    if (currentRole.isNotEmpty) currentRole,
+                    if (company.isNotEmpty) company,
+                  ].join(' at '),
+                ),
+              if (location.isNotEmpty)
+                _buildInfoTile(
+                  colors,
+                  icon: Icons.location_on_outlined,
+                  title: 'Location',
+                  subtitle: location,
+                ),
+              if (bio.isNotEmpty)
+                _buildInfoTile(
+                  colors,
+                  icon: Icons.format_quote_rounded,
+                  title: 'About',
+                  subtitle: bio,
+                ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showApprovalDetailsSheet(BuildContext context, Map<String, dynamic> item) {
+    final colors = AppColors.of(context);
+    final id = item['id']?.toString() ?? '';
+    final name = item['fullName'] ?? item['name'] ?? item['email'] ?? 'Alumni Applicant';
+    final email = item['email']?.toString() ?? '';
+    final phone = item['phone']?.toString() ?? item['mobile']?.toString() ?? '';
+    final batch = item['batchYear']?.toString() ?? item['batch']?.toString() ?? '';
+    final role = item['role']?.toString() ?? 'Alumni Applicant';
+    final school = (item['jnv'] is Map ? item['jnv']['name'] : null) ??
+        (item['school'] is Map ? item['school']['name'] : null) ??
+        item['jnvSchool']?.toString() ??
+        item['jnvName']?.toString() ??
+        '';
+    final admissionNumber = item['admissionNumber']?.toString() ?? item['rollNo']?.toString() ?? item['house']?.toString() ?? '';
+    final appliedAt = item['createdAt']?.toString() ?? '';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: colors.border),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Colors.orange.shade700,
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : 'A',
+                      style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colors.textPrimary),
+                        ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text('PENDING APPROVAL', style: TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.bold)),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: colors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(role, style: TextStyle(fontSize: 11, color: colors.primary, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        try {
+                          await _service.decideApproval(id, approve: false);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Rejected registration for $name')),
+                            );
+                          }
+                          _loadAll();
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed to reject approval: $e')),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      label: const Text('Reject'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.redAccent,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        try {
+                          await _service.decideApproval(id, approve: true);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Approved registration for $name')),
+                            );
+                          }
+                          _loadAll();
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed to approve registration: $e')),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.check_rounded, size: 18),
+                      label: const Text('Approve'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _openMemberProfile(item);
+                },
+                icon: const Icon(Icons.person_outline_rounded, size: 18),
+                label: const Text('Open Full Profile'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Divider(height: 1, color: colors.border),
+              const SizedBox(height: 12),
+              Text(
+                'Verification Information',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colors.textSecondary),
+              ),
+              const SizedBox(height: 8),
+              if (email.isNotEmpty)
+                _buildInfoTile(
+                  colors,
+                  icon: Icons.email_outlined,
+                  title: 'Email',
+                  subtitle: email,
+                  trailing: IconButton(
+                    icon: Icon(Icons.mail_outline_rounded, size: 20, color: colors.primary),
+                    onPressed: () => _safeLaunch('mailto:$email'),
+                  ),
+                ),
+              if (phone.isNotEmpty)
+                _buildInfoTile(
+                  colors,
+                  icon: Icons.phone_outlined,
+                  title: 'Phone',
+                  subtitle: phone,
+                  trailing: IconButton(
+                    icon: const Icon(Icons.call_outlined, size: 20, color: Colors.green),
+                    onPressed: () => _safeLaunch('tel:$phone'),
+                  ),
+                ),
+              if (school.isNotEmpty || batch.isNotEmpty)
+                _buildInfoTile(
+                  colors,
+                  icon: Icons.school_outlined,
+                  title: 'School & Batch',
+                  subtitle: [
+                    if (school.isNotEmpty) (school.startsWith('JNV') ? school : 'JNV $school'),
+                    if (batch.isNotEmpty) 'Batch $batch',
+                  ].join(' • '),
+                ),
+              if (admissionNumber.isNotEmpty)
+                _buildInfoTile(
+                  colors,
+                  icon: Icons.badge_outlined,
+                  title: 'Admission / House',
+                  subtitle: admissionNumber,
+                ),
+              if (appliedAt.isNotEmpty)
+                _buildInfoTile(
+                  colors,
+                  icon: Icons.access_time_rounded,
+                  title: 'Applied On',
+                  subtitle: appliedAt,
+                ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // TAB 2: MEMBERS
   Widget _buildMembersTab(ThemePalette colors) {
     if (_members.isEmpty) {
@@ -728,55 +1242,67 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final m = _members[index];
-        final name = m['fullName'] ?? m['email'] ?? 'Member';
+        final name = m['fullName'] ?? m['name'] ?? m['email'] ?? 'Member';
         final email = m['email']?.toString() ?? '';
         final batch = m['batchYear']?.toString() ?? m['batch']?.toString();
         final role = m['role']?.toString() ?? 'Alumni';
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: colors.surface,
+        return Material(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: colors.border),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: colors.primary,
-                child: Text(name.isNotEmpty ? name[0].toUpperCase() : 'M', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            onTap: () => _showMemberDetailsSheet(context, m),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: colors.border),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: colors.textPrimary)),
-                    if (email.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(email, style: TextStyle(fontSize: 12, color: colors.textSecondary)),
-                    ],
-                    const SizedBox(height: 4),
-                    Row(
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: colors.primary,
+                    child: Text(name.isNotEmpty ? name[0].toUpperCase() : 'M', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: colors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(role, style: TextStyle(fontSize: 11, color: colors.primary, fontWeight: FontWeight.bold)),
-                        ),
-                        if (batch != null && batch.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          Text('Batch: $batch', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
+                        Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: colors.textPrimary)),
+                        if (email.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(email, style: TextStyle(fontSize: 12, color: colors.textSecondary)),
                         ],
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: colors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(role, style: TextStyle(fontSize: 11, color: colors.primary, fontWeight: FontWeight.bold)),
+                            ),
+                            if (batch != null && batch.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Text('Batch: $batch', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: colors.textSecondary),
+                    tooltip: 'View Profile',
+                    onPressed: () => _openMemberProfile(m),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },
@@ -832,47 +1358,95 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
       itemBuilder: (context, index) {
         final item = _approvals[index];
         final id = item['id']?.toString() ?? '';
-        final name = item['fullName'] ?? item['email'] ?? 'Alumni Applicant';
+        final name = item['fullName'] ?? item['name'] ?? item['email'] ?? 'Alumni Applicant';
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: colors.surface,
+        return Material(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: colors.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
-              if (item['email'] != null) ...[
-                const SizedBox(height: 2),
-                Text(item['email'], style: TextStyle(fontSize: 13, color: colors.textSecondary)),
-              ],
-              const SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+            onTap: () => _showApprovalDetailsSheet(context, item),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: colors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  OutlinedButton(
-                    onPressed: () async {
-                      await _service.decideApproval(id, approve: false);
-                      _loadAll();
-                    },
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
-                    child: const Text('Reject', style: TextStyle(fontSize: 12)),
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Colors.orange.shade700,
+                        child: Text(name.isNotEmpty ? name[0].toUpperCase() : 'A', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
+                            if (item['email'] != null) ...[
+                              const SizedBox(height: 2),
+                              Text(item['email'], style: TextStyle(fontSize: 13, color: colors.textSecondary)),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.info_outline_rounded, size: 14, color: Colors.orange.shade800),
+                            const SizedBox(width: 4),
+                            Text('Details', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange.shade800)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-                    onPressed: () async {
-                      await _service.decideApproval(id, approve: true);
-                      _loadAll();
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                    child: const Text('Approve', style: TextStyle(fontSize: 12)),
+                  const SizedBox(height: 14),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => _openMemberProfile(item),
+                        icon: const Icon(Icons.person_outline_rounded, size: 16),
+                        label: const Text('View Profile', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(foregroundColor: colors.primary, padding: EdgeInsets.zero),
+                      ),
+                      Row(
+                        children: [
+                          OutlinedButton(
+                            onPressed: () async {
+                              await _service.decideApproval(id, approve: false);
+                              _loadAll();
+                            },
+                            style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
+                            child: const Text('Reject', style: TextStyle(fontSize: 12)),
+                          ),
+                          const SizedBox(width: 10),
+                          ElevatedButton(
+                            onPressed: () async {
+                              await _service.decideApproval(id, approve: true);
+                              _loadAll();
+                            },
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                            child: const Text('Approve', style: TextStyle(fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         );
       },
@@ -1102,30 +1676,42 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                         final name = c['fullName'] ?? c['email'] ?? 'Batch Coordinator';
                         final batch = c['batchYear']?.toString() ?? c['batch']?.toString() ?? '';
 
-                        return Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: colors.surface,
+                        return Material(
+                          color: colors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          child: InkWell(
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: colors.border),
-                          ),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                backgroundColor: colors.primary,
-                                child: Text(name.isNotEmpty ? name[0].toUpperCase() : 'B', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            onTap: () => _showMemberDetailsSheet(context, c),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: colors.border),
                               ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: colors.textPrimary)),
-                                    if (batch.isNotEmpty) Text('Batch $batch', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
-                                  ],
-                                ),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: colors.primary,
+                                    child: Text(name.isNotEmpty ? name[0].toUpperCase() : 'B', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: colors.textPrimary)),
+                                        if (batch.isNotEmpty) Text('Batch $batch', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: colors.textSecondary),
+                                    tooltip: 'View Profile',
+                                    onPressed: () => _openMemberProfile(c),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         );
                       },

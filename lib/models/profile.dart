@@ -156,14 +156,19 @@ class Profile {
     );
   }
 
-  factory Profile.fromJson(Map<String, dynamic> json) {
+  factory Profile.fromJson(Map<String, dynamic> rawJson) {
+    final profileSub = rawJson['profile'] is Map<String, dynamic> ? rawJson['profile'] as Map<String, dynamic> : null;
+    final Map<String, dynamic> json = profileSub != null ? {...rawJson, ...profileSub} : rawJson;
+
     School? parsedSchool;
     if (json['jnv'] is Map<String, dynamic>) {
       parsedSchool = School.fromJson(json['jnv'] as Map<String, dynamic>);
     } else if (json['school'] is Map<String, dynamic>) {
       parsedSchool = School.fromJson(json['school'] as Map<String, dynamic>);
     } else if (json['jnvSchool'] != null) {
-      parsedSchool = School(jnvId: json['jnvSchool'].toString(), name: 'JNV', distt: '');
+      parsedSchool = School(jnvId: json['jnvSchool'].toString(), name: 'JNV ${json['jnvSchool']}', distt: '');
+    } else if (json['jnvName'] != null) {
+      parsedSchool = School(jnvId: json['jnvId']?.toString() ?? '', name: json['jnvName'].toString(), distt: '');
     } else if (json['jnvId'] != null) {
       parsedSchool = School(jnvId: json['jnvId'].toString(), name: 'JNV School', distt: '');
     }
@@ -192,13 +197,23 @@ class Profile {
         (json['user'] is Map ? json['user']['id']?.toString() : null) ??
         (json['account'] is Map ? json['account']['id']?.toString() : null);
 
+    final resolvedId = json['id']?.toString() ??
+        json['profileId']?.toString() ??
+        resolvedUserId ??
+        '';
+
+    final resolvedName = json['fullName']?.toString() ??
+        json['name']?.toString() ??
+        json['displayName']?.toString() ??
+        (json['email'] != null ? json['email'].toString().split('@').first : '');
+
     return Profile(
-      id: json['id']?.toString() ?? '',
+      id: resolvedId,
       userId: resolvedUserId,
-      fullName: json['fullName']?.toString() ?? '',
-      currentRole: json['currentRole']?.toString(),
-      company: json['company']?.toString(),
-      location: json['location']?.toString(),
+      fullName: resolvedName,
+      currentRole: json['currentRole']?.toString() ?? json['role']?.toString(),
+      company: json['company']?.toString() ?? json['organization']?.toString(),
+      location: json['location']?.toString() ?? json['city']?.toString(),
       country: json['country']?.toString(),
       association: json['association']?.toString(),
       postingStatus: json['postingStatus']?.toString(),

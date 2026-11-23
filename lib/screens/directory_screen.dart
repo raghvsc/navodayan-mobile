@@ -145,11 +145,26 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final cleanMsg = e.toString().replaceAll('Exception: ', '');
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
           _loading = false;
           _loadingMore = false;
+          if (_profiles.isEmpty) {
+            _errorMessage = cleanMsg;
+          }
         });
+        if (_profiles.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(cleanMsg),
+              behavior: SnackBarBehavior.floating,
+              action: SnackBarAction(
+                label: 'Retry',
+                onPressed: () => _fetchDirectory(page: _currentPage),
+              ),
+            ),
+          );
+        }
       }
     }
   }
@@ -449,11 +464,11 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
   Widget _buildBody(AuthProvider auth) {
     final colors = AppColors.of(context);
 
-    if (_loading) {
+    if (_loading && _profiles.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_errorMessage != null) {
+    if (_errorMessage != null && _profiles.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),

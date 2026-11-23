@@ -360,7 +360,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Blocked ${widget.participantName}.')),
               );
-              Navigator.pop(context);
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              }
             },
             child: const Text('Block Member'),
           ),

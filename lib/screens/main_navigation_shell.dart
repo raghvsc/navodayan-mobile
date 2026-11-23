@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
@@ -30,6 +31,7 @@ class MainNavigationShell extends StatefulWidget {
 
 class _MainNavigationShellState extends State<MainNavigationShell> {
   int _currentIndex = 0;
+  DateTime? _lastBackPressTime;
 
   @override
   void initState() {
@@ -59,47 +61,78 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       _buildMoreScreen(auth),
     ];
 
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: pages,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+
+        // If on another tab (e.g. Events, Directory, Mentorship, More), go to Home tab
+        if (_currentIndex != 0) {
           setState(() {
-            _currentIndex = index;
+            _currentIndex = 0;
           });
-        },
-        backgroundColor: colors.surface,
-        indicatorColor: colors.primary.withValues(alpha: 0.15),
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded, color: colors.primary),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.people_outline_rounded),
-            selectedIcon: Icon(Icons.people_rounded, color: colors.primary),
-            label: 'Directory',
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.school_outlined),
-            selectedIcon: Icon(Icons.school_rounded, color: colors.primary),
-            label: 'Mentorship',
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.event_outlined),
-            selectedIcon: Icon(Icons.event_rounded, color: colors.primary),
-            label: 'Events',
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.grid_view_rounded),
-            selectedIcon: Icon(Icons.grid_view_sharp, color: colors.primary),
-            label: 'More',
-          ),
-        ],
+          return;
+        }
+
+        // On Home tab: double back press within 2s exits gracefully
+        final now = DateTime.now();
+        if (_lastBackPressTime == null ||
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Press back again to exit'),
+              duration: Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+
+        SystemNavigator.pop();
+      },
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: pages,
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          backgroundColor: colors.surface,
+          indicatorColor: colors.primary.withValues(alpha: 0.15),
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded, color: colors.primary),
+              label: 'Home',
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.people_outline_rounded),
+              selectedIcon: Icon(Icons.people_rounded, color: colors.primary),
+              label: 'Directory',
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.school_outlined),
+              selectedIcon: Icon(Icons.school_rounded, color: colors.primary),
+              label: 'Mentorship',
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.event_outlined),
+              selectedIcon: Icon(Icons.event_rounded, color: colors.primary),
+              label: 'Events',
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.grid_view_rounded),
+              selectedIcon: Icon(Icons.grid_view_sharp, color: colors.primary),
+              label: 'More',
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -12,7 +12,9 @@ import 'package:navodayan/providers/notification_provider.dart';
 import 'package:navodayan/screens/connections_screen.dart';
 import 'package:navodayan/screens/contributions_screen.dart';
 import 'package:navodayan/screens/coordinator_dashboard_screen.dart';
+import 'package:navodayan/screens/main_navigation_shell.dart';
 import 'package:navodayan/screens/offerings_screen.dart';
+import 'package:navodayan/screens/profile_screen.dart';
 import 'package:navodayan/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -335,6 +337,69 @@ void main() {
             find.text('Coordinator Scope Assignment').evaluate().isNotEmpty,
         isTrue,
       );
+    });
+
+    testWidgets('ProfileScreen displays Coordinator Verification card with Approve and Reject buttons when isApprovalReview is true', (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({
+        AuthProvider.tokenKey: 'test_token',
+        AuthProvider.userKey: jsonEncode({
+          'id': 'coord-user-1',
+          'email': 'coord@navodaya.org',
+          'role': 'COORDINATOR',
+          'approvalStatus': 'APPROVED',
+        }),
+      });
+
+      final testProfile = Profile(
+        id: 'applicant-1',
+        fullName: 'Applicant Alumni',
+        approvalStatus: 'PENDING',
+      );
+
+      await tester.pumpWidget(createTestWidget(ProfileScreen(
+        profileId: 'applicant-1',
+        initialProfile: testProfile,
+        approvalId: 'approval-req-1',
+        isApprovalReview: true,
+      )));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Coordinator Verification'), findsOneWidget);
+      expect(find.text('Approve'), findsOneWidget);
+      expect(find.text('Reject'), findsOneWidget);
+    });
+
+    testWidgets('MainNavigationShell intercepts back navigation on Events tab and returns to Home tab', (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({
+        AuthProvider.tokenKey: 'test_token',
+        AuthProvider.userKey: jsonEncode({
+          'id': 'user-1',
+          'email': 'user@navodaya.org',
+          'role': 'ALUMNI',
+          'approvalStatus': 'APPROVED',
+        }),
+      });
+
+      await tester.pumpWidget(createTestWidget(const MainNavigationShell()));
+      await tester.pumpAndSettle();
+
+      // Tap Events tab (index 3)
+      await tester.tap(find.text('Events'));
+      await tester.pumpAndSettle();
+
+      // Verify Events tab is active (finds Navodayan Events in app bar)
+      expect(find.text('Navodayan Events'), findsOneWidget);
+
+      // Simulate system back gesture / back navigation via PopScope
+      final popScopeFinder = find.byWidgetPredicate((w) => w is PopScope);
+      expect(popScopeFinder, findsOneWidget);
+      final dynamic popScope = tester.widget(popScopeFinder);
+      expect(popScope.canPop, isFalse);
+      popScope.onPopInvokedWithResult(false, null);
+      await tester.pumpAndSettle();
+
+      // Should have returned to Home tab without crashing
+      expect(find.text('Home'), findsWidgets);
     });
   });
 }

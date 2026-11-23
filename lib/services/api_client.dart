@@ -129,12 +129,25 @@ class ApiClient {
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      final errorMsg = responseData['message']?.toString() ??
+      String errorMsg = responseData['message']?.toString() ??
           responseData['error']?.toString() ??
           'Request failed with status ${response.statusCode}';
+
+      final lowerMsg = errorMsg.toLowerCase();
+      if (response.statusCode == 429 ||
+          lowerMsg.contains('too many requests') ||
+          lowerMsg.contains('rate limit') ||
+          lowerMsg.contains('try again after')) {
+        errorMsg = 'Server is busy right now. Please wait a moment and try again.';
+      } else if (response.statusCode == 502 ||
+          response.statusCode == 503 ||
+          response.statusCode == 504) {
+        errorMsg = 'Server is temporarily unavailable. Please try again shortly.';
+      }
+
       if (response.statusCode == 401 ||
-          errorMsg.toLowerCase().contains('invalid or expired token') ||
-          errorMsg.toLowerCase().contains('no token provided')) {
+          lowerMsg.contains('invalid or expired token') ||
+          lowerMsg.contains('no token provided')) {
         onSessionExpired?.call();
       }
       throw Exception(errorMsg);

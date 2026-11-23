@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/profile.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
+import '../services/coordinator_service.dart';
 import '../services/dashboard_service.dart';
 import '../services/profile_service.dart';
 import '../theme/app_theme.dart';
@@ -16,12 +17,18 @@ class ProfileScreen extends StatefulWidget {
   final String? profileId;
   final Profile? initialProfile;
   final bool isSelf;
+  final String? approvalId;
+  final bool isApprovalReview;
+  final ValueChanged<bool>? onApprovalDecided;
 
   const ProfileScreen({
     super.key,
     this.profileId,
     this.initialProfile,
     this.isSelf = false,
+    this.approvalId,
+    this.isApprovalReview = false,
+    this.onApprovalDecided,
   });
 
   @override
@@ -31,9 +38,12 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final ProfileService _profileService = ProfileService();
   final DashboardService _dashboardService = DashboardService();
+  final CoordinatorService _coordinatorService = CoordinatorService();
   Profile? _profile;
   bool _loading = true;
   String? _errorMessage;
+  bool _isDecidingApproval = false;
+  String? _approvalDecision;
 
   @override
   void initState() {
@@ -323,7 +333,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Blocked ${p.displayName}')),
                   );
-                  Navigator.pop(context);
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
                 }
               } catch (e) {
                 if (mounted) {
@@ -340,12 +352,200 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _handleApprovalDecision(bool approve) async {
+    final targetId = widget.approvalId ?? widget.profileId ?? _profile?.id ?? '';
+    if (targetId.isEmpty) return;
+
+    setState(() => _isDecidingApproval = true);
+
+    try {
+      await _coordinatorService.decideApproval(targetId, approve: approve);
+      if (mounted) {
+        setState(() {
+          _isDecidingApproval = false;
+          _approvalDecision = approve ? 'APPROVED' : 'REJECTED';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: approve ? Colors.green.shade800 : Colors.red.shade800,
+            content: Text(
+              approve
+                  ? 'Registration successfully approved for ${_profile?.displayName ?? 'applicant'}!'
+                  : 'Registration rejected for ${_profile?.displayName ?? 'applicant'}.',
+            ),
+          ),
+        );
+        widget.onApprovalDecided?.call(approve);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isDecidingApproval = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red.shade800,
+            content: Text('Failed to update approval status: $e'),
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildApprovalActionCard(ThemePalette colors, Profile p) {
+    if (_approvalDecision != null) {
+      final isApproved = _approvalDecision == 'APPROVED';
+      return Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isApproved ? Colors.green.withValues(alpha: 0.12) : Colors.red.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isApproved ? Colors.green : Colors.redAccent),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isApproved ? Icons.check_circle_rounded : Icons.cancel_rounded,
+              color: isApproved ? Colors.green : Colors.redAccent,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isApproved ? 'Registration Approved' : 'Registration Rejected',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isApproved ? Colors.green.shade800 : Colors.red.shade800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isApproved
+                        ? 'This alumnus has been verified and their account is now active.'
+                        : 'This application was rejected.',
+                    style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.shade400, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade700,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.verified_user_outlined, size: 20, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Coordinator Verification',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Review this applicant\'s details and take approval action.',
+                      style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade800,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'PENDING',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isDecidingApproval ? null : () => _handleApprovalDecision(false),
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  label: const Text('Reject'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.redAccent,
+                    side: const BorderSide(color: Colors.redAccent),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _isDecidingApproval ? null : () => _handleApprovalDecision(true),
+                  icon: _isDecidingApproval
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.check_rounded, size: 18),
+                  label: Text(_isDecidingApproval ? 'Processing...' : 'Approve'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 2,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     final auth = context.watch<AuthProvider>();
     final isSelf = widget.isSelf ||
         (auth.user?.profile?.id != null && auth.user!.profile!.id == _profile?.id);
+
+    final bool showApprovalCard = !isSelf &&
+        (widget.isApprovalReview ||
+            widget.approvalId != null ||
+            (_profile?.approvalStatus?.toUpperCase() == 'PENDING' && auth.user?.isCoordinator == true));
 
     if (_loading && _profile == null) {
       return Scaffold(
@@ -668,6 +868,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Coordinator Approval Action Card
+                  if (showApprovalCard)
+                    _buildApprovalActionCard(colors, p),
+
                   // Action Buttons for other members
                   if (!isSelf) ...[
                     Row(

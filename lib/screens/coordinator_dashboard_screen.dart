@@ -715,7 +715,11 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
 
   // --- MEMBER & APPROVAL DETAILS / PROFILE HELPERS ---
 
-  void _openMemberProfile(Map<String, dynamic> item) {
+  void _openMemberProfile(
+    Map<String, dynamic> item, {
+    String? approvalId,
+    bool isApprovalReview = false,
+  }) {
     final profile = Profile.fromJson(item);
     final profileId = item['profileId']?.toString() ??
         (item['profile'] is Map ? item['profile']['id']?.toString() : null) ??
@@ -728,9 +732,14 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
         builder: (_) => ProfileScreen(
           profileId: profileId.isNotEmpty ? profileId : null,
           initialProfile: profile,
+          approvalId: approvalId,
+          isApprovalReview: isApprovalReview,
+          onApprovalDecided: (_) => _loadAll(),
         ),
       ),
-    );
+    ).then((_) {
+      _loadAll();
+    });
   }
 
   Future<void> _safeLaunch(String uriString) async {
@@ -1144,7 +1153,11 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
               OutlinedButton.icon(
                 onPressed: () {
                   Navigator.pop(ctx);
-                  _openMemberProfile(item);
+                  _openMemberProfile(
+                    item,
+                    approvalId: id,
+                    isApprovalReview: true,
+                  );
                 },
                 icon: const Icon(Icons.person_outline_rounded, size: 18),
                 label: const Text('Open Full Profile'),
@@ -1416,7 +1429,11 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       TextButton.icon(
-                        onPressed: () => _openMemberProfile(item),
+                        onPressed: () => _openMemberProfile(
+                          item,
+                          approvalId: id,
+                          isApprovalReview: true,
+                        ),
                         icon: const Icon(Icons.person_outline_rounded, size: 16),
                         label: const Text('View Profile', style: TextStyle(fontSize: 12)),
                         style: TextButton.styleFrom(foregroundColor: colors.primary, padding: EdgeInsets.zero),

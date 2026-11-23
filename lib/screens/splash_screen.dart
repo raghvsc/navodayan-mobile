@@ -40,6 +40,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   void dispose() {
+    try {
+      context.read<AuthProvider>().removeListener(_authListener);
+    } catch (_) {}
     _controller.dispose();
     super.dispose();
   }

@@ -77,6 +77,10 @@ android {
     }
 }
 
+tasks.matching { it.name.contains("uploadCrashlyticsMappingFile") }.configureEach {
+    enabled = false
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17

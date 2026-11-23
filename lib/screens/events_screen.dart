@@ -27,11 +27,18 @@ class _EventsScreenState extends State<EventsScreen> {
   void initState() {
     super.initState();
     _fetchEvents();
-    _searchController.addListener(() => setState(() {}));
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -39,7 +46,9 @@ class _EventsScreenState extends State<EventsScreen> {
   Future<void> _fetchEvents() async {
     setState(() {
       _loading = true;
-      _errorMessage = null;
+      if (_events.isEmpty) {
+        _errorMessage = null;
+      }
     });
 
     try {
@@ -48,15 +57,28 @@ class _EventsScreenState extends State<EventsScreen> {
       if (mounted) {
         setState(() {
           _events = events;
+          _errorMessage = null;
           _loading = false;
         });
       }
     } catch (e) {
       if (mounted) {
+        final cleanMsg = e.toString().replaceAll('Exception: ', '');
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
           _loading = false;
+          if (_events.isEmpty) {
+            _errorMessage = cleanMsg;
+          }
         });
+        if (_events.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(cleanMsg),
+              behavior: SnackBarBehavior.floating,
+              action: SnackBarAction(label: 'Retry', onPressed: _fetchEvents),
+            ),
+          );
+        }
       }
     }
   }
@@ -205,14 +227,14 @@ class _EventsScreenState extends State<EventsScreen> {
               ),
               const SizedBox(height: 20),
 
-              if (_loading)
+              if (_loading && _events.isEmpty)
                 const Center(
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 48),
                     child: CircularProgressIndicator(),
                   ),
                 )
-              else if (_errorMessage != null)
+              else if (_errorMessage != null && _events.isEmpty)
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(

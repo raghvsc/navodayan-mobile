@@ -44,11 +44,18 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
   void initState() {
     super.initState();
     _fetchMentors();
-    _searchController.addListener(() => setState(() {}));
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -56,7 +63,9 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
   Future<void> _fetchMentors() async {
     setState(() {
       _loadingMentors = true;
-      _errorMessage = null;
+      if (_mentors.isEmpty) {
+        _errorMessage = null;
+      }
     });
 
     try {
@@ -65,15 +74,28 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
       if (mounted) {
         setState(() {
           _mentors = mentors;
+          _errorMessage = null;
           _loadingMentors = false;
         });
       }
     } catch (e) {
       if (mounted) {
+        final cleanMsg = e.toString().replaceAll('Exception: ', '');
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
           _loadingMentors = false;
+          if (_mentors.isEmpty) {
+            _errorMessage = cleanMsg;
+          }
         });
+        if (_mentors.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(cleanMsg),
+              behavior: SnackBarBehavior.floating,
+              action: SnackBarAction(label: 'Retry', onPressed: _fetchMentors),
+            ),
+          );
+        }
       }
     }
   }
@@ -462,14 +484,14 @@ class _MentorshipScreenState extends State<MentorshipScreen> {
         ),
         const SizedBox(height: 20),
 
-        if (_loadingMentors)
+        if (_loadingMentors && _mentors.isEmpty)
           const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 48),
               child: CircularProgressIndicator(),
             ),
           )
-        else if (_errorMessage != null)
+        else if (_errorMessage != null && _mentors.isEmpty)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(

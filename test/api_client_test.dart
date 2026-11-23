@@ -60,5 +60,39 @@ void main() {
         throwsA(predicate((e) => e is Exception && e.toString().contains('Invalid credentials'))),
       );
     });
+
+    test('maps 429 or rate limit messages to friendly server busy message', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          'Too many requests from this IP, please try again after 15 minutes',
+          429,
+          headers: {'content-type': 'text/plain'},
+        );
+      });
+
+      final api = ApiClient(baseUrl: 'http://test.local/api', client: mockClient);
+
+      expect(
+        () => api.get('/events'),
+        throwsA(predicate((e) =>
+            e is Exception &&
+            e.toString().contains('Server is busy right now. Please wait a moment and try again.'))),
+      );
+    });
+
+    test('maps 503 gateway/server error to friendly unavailable message', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('Service Unavailable', 503);
+      });
+
+      final api = ApiClient(baseUrl: 'http://test.local/api', client: mockClient);
+
+      expect(
+        () => api.get('/directory'),
+        throwsA(predicate((e) =>
+            e is Exception &&
+            e.toString().contains('Server is temporarily unavailable. Please try again shortly.'))),
+      );
+    });
   });
 }
